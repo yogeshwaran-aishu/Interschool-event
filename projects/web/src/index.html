@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <title>InterSchool Connect</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Invite-only inter-school competitions: invitations, school approvals and live participant lists."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#3525a8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0d18" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      // Apply saved display preferences before first paint to avoid a theme flash.
+      try {
+        var p = JSON.parse(localStorage.getItem('ds-preferences') || '{}');
+        var r = document.documentElement;
+        r.dataset.theme = p.theme || 'system';
+        r.dataset.motion = p.motion || 'system';
+        r.dataset.text = p.text || 'default';
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+    <noscript>InterSchool Connect needs JavaScript turned on.</noscript>
+  </body>
+</html>

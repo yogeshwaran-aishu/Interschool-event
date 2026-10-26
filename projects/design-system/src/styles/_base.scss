@@ -1,0 +1,173 @@
+@use 'tokens';
+
+:root {
+  @include tokens.scale-tokens;
+  @include tokens.light-tokens;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include tokens.dark-tokens;
+  }
+}
+
+:root[data-theme='dark'] {
+  @include tokens.dark-tokens;
+}
+
+// "Larger text" preference (WCAG 1.4.8 visual presentation support).
+:root[data-text='large'] {
+  --ds-text-scale: 1.15;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  // Keep focused elements clear of the sticky header (WCAG 2.4.12 focus not obscured).
+  scroll-padding-top: calc(var(--ds-header-h) + var(--ds-space-4));
+  scroll-padding-bottom: 96px;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-md);
+  line-height: var(--ds-lh-body);
+  color: var(--ds-text);
+  background:
+    radial-gradient(1100px 520px at 100% -10%, var(--ds-bg-accent-1), transparent 60%),
+    radial-gradient(900px 480px at -10% 110%, var(--ds-bg-accent-2), transparent 60%), var(--ds-bg);
+  background-attachment: fixed;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--ds-lh-tight);
+  letter-spacing: -0.015em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--ds-fs-3xl);
+}
+
+h2 {
+  font-size: var(--ds-fs-2xl);
+}
+
+h3 {
+  font-size: var(--ds-fs-xl);
+}
+
+h4 {
+  font-size: var(--ds-fs-lg);
+}
+
+p {
+  margin: 0;
+  max-width: 75ch;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--ds-primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+// WCAG 2.4.13 (AAA) focus appearance: a 3px solid outline plus a contrasting halo,
+// visible on every surface in both themes.
+:focus-visible {
+  outline: 3px solid var(--ds-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--ds-focus-halo);
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--ds-primary);
+  color: var(--ds-on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --ds-duration: 0ms;
+  }
+
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion='reduce'] {
+  --ds-duration: 0ms;
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+.ds-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

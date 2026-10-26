@@ -1,0 +1,166 @@
+<nav class="ds-breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a routerLink="/events">Hosted events</a></li>
+    @if (existing(); as e) {
+      <li>
+        <a [routerLink]="['/events', e.id]">{{ e.title }}</a>
+      </li>
+    }
+    <li>
+      <span aria-current="page">{{ isEdit() ? 'Edit' : 'Create event' }}</span>
+    </li>
+  </ol>
+</nav>
+
+<ds-page-header
+  [heading]="isEdit() ? 'Edit event' : 'Create an event'"
+  eyebrow="Host"
+  [lede]="
+    isEdit()
+      ? 'Changing the date, venue, deadline or eligibility notifies every accepted school and applied student.'
+      : 'Fill in the details and categories. Save a draft, or publish to start inviting schools.'
+  "
+/>
+
+<form class="layout" novalidate (submit)="save($any($event))">
+  <div class="ds-stack" style="--ds-stack-gap: var(--ds-space-5)">
+    <ds-card>
+      <h2 class="ds-card__title section-title">Details</h2>
+      <div class="ds-form-grid">
+        <ds-field
+          label="Title"
+          [required]="true"
+          [error]="errorOf(form.title())"
+          class="ds-span-all"
+        >
+          <input dsControl [formField]="form.title" />
+        </ds-field>
+        <ds-field
+          label="Description"
+          hint="What happens on the day, who it is for, and anything students should bring."
+          class="ds-span-all"
+        >
+          <textarea dsControl rows="4" [formField]="form.description"></textarea>
+        </ds-field>
+        <ds-field
+          label="Venue"
+          [required]="true"
+          [error]="errorOf(form.venue())"
+          class="ds-span-all"
+        >
+          <input dsControl [formField]="form.venue" />
+        </ds-field>
+        <ds-field label="Event starts" [required]="true" [error]="errorOf(form.startsAt())">
+          <input dsControl type="datetime-local" [formField]="form.startsAt" />
+        </ds-field>
+        <ds-field
+          label="Registration deadline"
+          [required]="true"
+          hint="Unanswered invitations expire and lists lock at this time."
+          [error]="errorOf(form.regDeadline())"
+        >
+          <input dsControl type="datetime-local" [formField]="form.regDeadline" />
+        </ds-field>
+      </div>
+    </ds-card>
+
+    <section class="ds-stack" aria-labelledby="cats-title">
+      <div class="ds-cluster" style="justify-content: space-between">
+        <h2 id="cats-title" class="section-title">Categories ({{ model().categories.length }})</h2>
+        <button dsButton="soft" type="button" (click)="addCategory()">
+          <ds-icon name="plus" /> Add category
+        </button>
+      </div>
+
+      @for (c of categoryFields(); track $index; let i = $index) {
+        <ds-card>
+          <fieldset class="cat">
+            <legend class="cat__legend">
+              Category {{ i + 1 }}
+              @if (model().categories[i].name) {
+                <span>: {{ model().categories[i].name }}</span>
+              }
+            </legend>
+            <div class="ds-form-grid">
+              <ds-field
+                label="Name"
+                [required]="true"
+                [error]="errorOf(c.name())"
+                class="ds-span-all"
+              >
+                <input dsControl [formField]="c.name" />
+              </ds-field>
+              <ds-field label="Lowest class" [error]="errorOf(c.minClass())">
+                <input dsControl type="number" inputmode="numeric" [formField]="c.minClass" />
+              </ds-field>
+              <ds-field label="Highest class" [error]="errorOf(c.maxClass())">
+                <input dsControl type="number" inputmode="numeric" [formField]="c.maxClass" />
+              </ds-field>
+              <ds-field label="Gender eligibility">
+                <select dsControl [formField]="c.genderRule">
+                  <option value="any">Any</option>
+                  <option value="female">Girls only</option>
+                  <option value="male">Boys only</option>
+                </select>
+              </ds-field>
+              <ds-field label="Entry type">
+                <select dsControl [formField]="c.type">
+                  <option value="solo">Individual</option>
+                  <option value="team">Team</option>
+                </select>
+              </ds-field>
+              @if (model().categories[i].type === 'team') {
+                <ds-field label="Team size" [error]="errorOf(c.teamSize())">
+                  <input dsControl type="number" inputmode="numeric" [formField]="c.teamSize" />
+                </ds-field>
+              }
+              <ds-field
+                label="Max entries per school"
+                hint="Schools cannot approve more than this."
+                [error]="errorOf(c.maxPerSchool())"
+              >
+                <input dsControl type="number" inputmode="numeric" [formField]="c.maxPerSchool" />
+              </ds-field>
+            </div>
+            @if (model().categories.length > 1) {
+              <div class="cat__remove">
+                <button dsButton="ghost" type="button" (click)="removeCategory(i)">
+                  <ds-icon name="x" /> Remove category {{ i + 1 }}
+                </button>
+              </div>
+            }
+          </fieldset>
+        </ds-card>
+      }
+    </section>
+  </div>
+
+  <aside class="side" aria-label="Save">
+    <ds-card class="ds-stack side__card">
+      <h2 class="ds-card__title">{{ isEdit() ? 'Save changes' : 'Ready?' }}</h2>
+      <p class="ds-muted">
+        {{
+          isEdit()
+            ? 'Accepted schools and applied students will be told about material changes.'
+            : 'Drafts are visible only to your school. Publishing lets you invite schools.'
+        }}
+      </p>
+      @if (isEdit()) {
+        <button dsButton="primary" [block]="true" type="submit" value="save">
+          <ds-icon name="check" /> Save changes
+        </button>
+      } @else {
+        <button dsButton="primary" [block]="true" type="submit" value="publish">
+          <ds-icon name="send" /> Publish event
+        </button>
+        <button dsButton [block]="true" type="submit" value="draft">Save as draft</button>
+      }
+      <a
+        dsButton="ghost"
+        [block]="true"
+        [routerLink]="existing() ? ['/events', existing()!.id] : ['/events']"
+        >Cancel</a
+      >
+    </ds-card>
+  </aside>
+</form>

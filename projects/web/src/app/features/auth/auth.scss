@@ -1,0 +1,197 @@
+.auth {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+
+  &__hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-6);
+    padding: var(--ds-space-5) var(--ds-space-4);
+    background: var(--ds-gradient-brand);
+    color: #ffffff;
+    overflow: hidden;
+
+    @media (min-width: 768px) {
+      padding: var(--ds-space-6);
+    }
+
+    @media (min-width: 1024px) {
+      justify-content: space-between;
+      padding: var(--ds-space-7);
+    }
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    &::before {
+      width: 520px;
+      height: 520px;
+      right: -180px;
+      top: -160px;
+      background: radial-gradient(circle, rgb(255 255 255 / 0.16), transparent 65%);
+    }
+
+    &::after {
+      width: 380px;
+      height: 380px;
+      left: -120px;
+      bottom: -160px;
+      background: radial-gradient(circle, rgb(127 224 212 / 0.25), transparent 65%);
+    }
+  }
+
+  &__brand {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    font-weight: 800;
+    font-size: var(--ds-fs-lg);
+  }
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 0.16);
+    border: 1px solid rgb(255 255 255 / 0.5);
+
+    ::ng-deep svg {
+      width: 24px;
+    }
+  }
+
+  &__pitch {
+    position: relative;
+    display: grid;
+    gap: var(--ds-space-4);
+    max-width: 34rem;
+
+    p {
+      color: #ffffff;
+      font-size: var(--ds-fs-lg);
+    }
+
+    .auth__headline {
+      font-size: var(--ds-fs-3xl);
+      font-weight: 800;
+      line-height: var(--ds-lh-tight);
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    @media (max-width: 767px) {
+      .auth__headline {
+        font-size: var(--ds-fs-xl);
+      }
+
+      p:not(.auth__headline),
+      ul {
+        display: none;
+      }
+    }
+  }
+
+  &__points {
+    display: grid;
+    gap: var(--ds-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-weight: 600;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-space-3);
+    }
+
+    ::ng-deep svg {
+      width: 22px;
+      flex: none;
+    }
+  }
+
+  &__panel {
+    display: grid;
+    place-items: center;
+    padding: var(--ds-space-5) var(--ds-space-4) var(--ds-space-7);
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__card {
+    display: grid;
+    gap: var(--ds-space-5);
+    width: 100%;
+    max-width: 30rem;
+  }
+
+  &__password {
+    display: flex;
+    gap: var(--ds-space-2);
+
+    input {
+      flex: 1;
+    }
+  }
+
+  &__demo {
+    display: grid;
+    gap: var(--ds-space-2);
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid var(--ds-border);
+
+    h2 {
+      font-size: var(--ds-fs-lg);
+    }
+
+    ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+      gap: var(--ds-space-2);
+      margin: var(--ds-space-2) 0 0;
+      padding: 0;
+      list-style: none;
+    }
+  }
+
+  &__demo-btn {
+    display: grid;
+    width: 100%;
+    min-height: var(--ds-target);
+    padding: var(--ds-space-2) var(--ds-space-3);
+    border: 1.5px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface);
+    text-align: start;
+    font-size: var(--ds-fs-xs);
+    cursor: pointer;
+    transition: border-color var(--ds-duration) var(--ds-ease);
+
+    &:hover {
+      border-color: var(--ds-primary);
+      background: var(--ds-primary-soft);
+    }
+  }
+
+  &__demo-label {
+    font-weight: 700;
+    font-size: var(--ds-fs-sm);
+  }
+}

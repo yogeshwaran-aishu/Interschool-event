@@ -3,6 +3,10 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@isc/design-system": ["./projects/design-system/src/public-api.ts"]
+    },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
@@ -17,7 +21,23 @@
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+    "extendedDiagnostics": { "defaultCategory": "error" }
   },
-  "files": []
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/web/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/web/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/design-system/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/design-system/tsconfig.spec.json"
+    }
+  ]
 }

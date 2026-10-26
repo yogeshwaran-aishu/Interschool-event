@@ -1,0 +1,89 @@
+<div class="auth">
+  <section class="auth__hero" aria-labelledby="hero-title">
+    <div class="auth__brand">
+      <span class="auth__mark" aria-hidden="true"><ds-icon name="trophy" /></span>
+      <span>InterSchool Connect</span>
+    </div>
+    <div class="auth__pitch">
+      <p id="hero-title" class="auth__headline">
+        Inter-school competitions, without the paper circulars.
+      </p>
+      <p>
+        Invite schools, collect school-approved nominations and see a live participant list — all in
+        one place.
+      </p>
+      <ul class="auth__points">
+        <li><ds-icon name="send" /> Invite-only events, accepted in one step</li>
+        <li><ds-icon name="shield" /> Schools approve their own students first</li>
+        <li><ds-icon name="download" /> Export confirmed participants by school and category</li>
+      </ul>
+    </div>
+  </section>
+
+  <main id="main" tabindex="-1" class="auth__panel">
+    <div class="auth__card">
+      <div class="ds-stack" style="--ds-stack-gap: var(--ds-space-2)">
+        <p class="ds-eyebrow">Welcome back</p>
+        <h1 data-page-heading tabindex="-1">Sign in</h1>
+        <p class="ds-muted">Use the account your school or the platform team gave you.</p>
+      </div>
+
+      @if (error()) {
+        <div class="ds-callout ds-callout--danger" role="alert">
+          <ds-icon name="alert" />
+          <p>{{ error() }}</p>
+        </div>
+      }
+
+      <form class="ds-stack" novalidate (submit)="onSubmit($event)">
+        <ds-field label="Email" [required]="true" [error]="errorOf('email')">
+          <input dsControl type="email" autocomplete="username" [formField]="form.email" />
+        </ds-field>
+        <ds-field
+          label="Password"
+          [required]="true"
+          [error]="errorOf('password')"
+          hint="You can paste your password or use a password manager."
+        >
+          <div class="auth__password">
+            <input
+              dsControl
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              [formField]="form.password"
+            />
+            <button
+              dsButton="ghost"
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-pressed]="showPassword()"
+            >
+              {{ showPassword() ? 'Hide' : 'Show'
+              }}<span class="ds-visually-hidden"> password</span>
+            </button>
+          </div>
+        </ds-field>
+        <button dsButton="primary" size="lg" [block]="true" type="submit">
+          Sign in <ds-icon name="arrow-right" />
+        </button>
+      </form>
+
+      <section class="auth__demo" aria-labelledby="demo-title">
+        <h2 id="demo-title">Try a demo account</h2>
+        <p class="ds-muted">
+          Choosing one fills in the form; the password for all is <code>demo1234</code>.
+        </p>
+        <ul>
+          @for (a of accounts; track a.email) {
+            <li>
+              <button type="button" class="auth__demo-btn" (click)="useDemo(a.email)">
+                <span class="auth__demo-label">{{ a.label }}</span>
+                <span class="ds-muted">{{ a.who }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  </main>
+</div>

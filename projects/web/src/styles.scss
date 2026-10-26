@@ -1,0 +1,151 @@
+// App-level patterns shared across feature pages. Tokens and components come from
+// the design system (projects/design-system/src/styles).
+
+.section {
+  margin-top: var(--ds-space-7);
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-4);
+
+    h2 {
+      font-size: var(--ds-fs-xl);
+    }
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--ds-target);
+      font-weight: 650;
+    }
+  }
+}
+
+.event-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-4);
+  margin-bottom: var(--ds-space-3);
+
+  &__date {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 64px;
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-primary-soft);
+    color: var(--ds-on-primary-soft);
+    line-height: 1.1;
+
+    span {
+      font-size: var(--ds-fs-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    strong {
+      font-size: var(--ds-fs-xl);
+    }
+  }
+
+  &__body {
+    flex: 1 1 14rem;
+    display: grid;
+    gap: var(--ds-space-1);
+
+    h3 {
+      font-size: var(--ds-fs-lg);
+    }
+
+    h3 a {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--ds-target);
+      color: var(--ds-text);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    p {
+      font-size: var(--ds-fs-sm);
+    }
+  }
+}
+
+.mini-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-3) 0;
+  }
+
+  li + li {
+    border-top: 1px solid var(--ds-border);
+  }
+
+  &__title {
+    font-weight: 650;
+  }
+
+  &__meta {
+    font-size: var(--ds-fs-xs);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-4);
+  margin-bottom: var(--ds-space-5);
+
+  ds-field {
+    flex: 1 1 18rem;
+    max-width: 28rem;
+  }
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2);
+}
+
+.meta-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2) var(--ds-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-sm);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}

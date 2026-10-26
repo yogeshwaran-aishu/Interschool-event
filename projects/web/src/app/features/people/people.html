@@ -1,0 +1,252 @@
+<ds-page-header
+  heading="People"
+  eyebrow="Your school"
+  lede="Students and teachers at your school. Import them in bulk from a spreadsheet."
+>
+  <button dsButton="primary" type="button" (click)="openImport()">
+    <ds-icon name="upload" /> Import <abbr title="Comma-separated values">CSV</abbr>
+  </button>
+</ds-page-header>
+
+<div class="ds-tabs" role="tablist" aria-label="People">
+  <button
+    id="tab-students"
+    role="tab"
+    type="button"
+    aria-controls="panel-people"
+    [attr.aria-selected]="tab() === 'students'"
+    [attr.tabindex]="tab() === 'students' ? 0 : -1"
+    (click)="selectTab('students')"
+    (keydown)="onTabKey($event)"
+  >
+    <ds-icon name="users" /> Students ({{ students().length }})
+  </button>
+  <button
+    id="tab-teachers"
+    role="tab"
+    type="button"
+    aria-controls="panel-people"
+    [attr.aria-selected]="tab() === 'teachers'"
+    [attr.tabindex]="tab() === 'teachers' ? 0 : -1"
+    (click)="selectTab('teachers')"
+    (keydown)="onTabKey($event)"
+  >
+    <ds-icon name="user" /> Teachers ({{ teachers().length }})
+  </button>
+</div>
+
+<div id="panel-people" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
+  <div class="toolbar">
+    <ds-field
+      [label]="tab() === 'students' ? 'Search students' : 'Search teachers'"
+      [hint]="tab() === 'students' ? 'By name or admission number' : 'By name'"
+    >
+      <input
+        dsControl
+        type="search"
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+      />
+    </ds-field>
+  </div>
+
+  @if (tab() === 'students') {
+    @if (students().length) {
+      <div class="ds-table-wrap">
+        <table class="ds-table ds-table--stack">
+          <caption class="ds-visually-hidden">
+            Students
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Admission no.</th>
+              <th scope="col">Class</th>
+              <th scope="col">Guardian</th>
+              <th scope="col">Consent</th>
+              <th scope="col">Account</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of students(); track s.user.id) {
+              <tr>
+                <td data-label="Name">
+                  <strong>{{ s.user.name }}</strong>
+                </td>
+                <td data-label="Admission no.">{{ s.profile?.admissionNo }}</td>
+                <td data-label="Class">{{ s.profile?.className }}{{ s.profile?.section }}</td>
+                <td data-label="Guardian">
+                  {{ s.profile?.guardianName }}<br /><span class="ds-muted">{{
+                    s.profile?.guardianContact
+                  }}</span>
+                </td>
+                <td data-label="Consent">
+                  <ds-badge [tone]="s.profile?.consent ? 'success' : 'danger'">{{
+                    s.profile?.consent ? 'Recorded' : 'Missing'
+                  }}</ds-badge>
+                </td>
+                <td data-label="Account">
+                  <ds-badge [tone]="s.user.mustChangePassword ? 'warning' : 'success'">{{
+                    s.user.mustChangePassword ? 'Awaiting first sign-in' : 'Active'
+                  }}</ds-badge>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <ds-empty-state
+        heading="No students found"
+        message="Import students from a CSV file to get started."
+        icon="users"
+      />
+    }
+  } @else {
+    @if (teachers().length) {
+      <div class="ds-table-wrap">
+        <table class="ds-table ds-table--stack">
+          <caption class="ds-visually-hidden">
+            Teachers
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Can create events</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of teachers(); track t.id) {
+              <tr>
+                <td data-label="Name">
+                  <strong>{{ t.name }}</strong>
+                </td>
+                <td data-label="Email">{{ t.email }}</td>
+                <td data-label="Can create events">
+                  <label class="ds-check">
+                    <input
+                      type="checkbox"
+                      [checked]="!!t.canHostEvents"
+                      (change)="toggleHosting(t.id, $any($event.target).checked)"
+                    />
+                    <span
+                      >Allowed<span class="ds-visually-hidden"> for {{ t.name }}</span></span
+                    >
+                  </label>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <ds-empty-state
+        heading="No teachers found"
+        message="Import teachers from a CSV file."
+        icon="user"
+      />
+    }
+  }
+</div>
+
+<ds-dialog
+  [(open)]="importOpen"
+  heading="Import people"
+  description="Upload a CSV file. We check every row before anything is saved."
+  [wide]="true"
+>
+  <div class="ds-stack">
+    <div class="ds-callout">
+      <ds-icon name="info" />
+      <div class="ds-stack" style="--ds-stack-gap: var(--ds-space-2)">
+        <p>
+          Columns: <code>{{ columns.join(', ') }}</code
+          >. Students need class, section, admission number, gender, guardian details and guardian
+          consent (yes or no). Students without consent cannot sign in.
+        </p>
+        <p>
+          <button dsButton="ghost" type="button" (click)="downloadTemplate()">
+            <ds-icon name="download" /> Download a template
+          </button>
+        </p>
+      </div>
+    </div>
+
+    <ds-field
+      label="CSV file"
+      [hint]="fileName() ? 'Selected: ' + fileName() : 'Choose a .csv file'"
+    >
+      <input dsControl type="file" accept=".csv,text/csv" (change)="onFile($event)" />
+    </ds-field>
+    <ds-field label="Or paste CSV text">
+      <textarea
+        dsControl
+        rows="5"
+        [value]="csvText()"
+        (input)="csvText.set($any($event.target).value)"
+      ></textarea>
+    </ds-field>
+    <div>
+      <button dsButton type="button" (click)="check()" [disabled]="!csvText().trim()">
+        <ds-icon name="check" /> Check rows
+      </button>
+    </div>
+
+    @if (report(); as r) {
+      <section aria-labelledby="import-report" class="ds-stack" role="status">
+        <h3 id="import-report" style="font-size: var(--ds-fs-lg)">Check results</h3>
+        <ul class="meta-list">
+          <li>
+            <ds-badge tone="success">{{ r.valid.length }} ready</ds-badge>
+          </li>
+          <li>
+            <ds-badge [tone]="r.errors.length ? 'danger' : 'neutral'"
+              >{{ r.errors.length }} with problems</ds-badge
+            >
+          </li>
+        </ul>
+        @if (r.errors.length) {
+          <div class="ds-table-wrap">
+            <table class="ds-table">
+              <caption>
+                Rows to fix
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Line</th>
+                  <th scope="col">Problems</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of r.errors; track e.line) {
+                  <tr>
+                    <td>{{ e.line }}</td>
+                    <td>
+                      <ul style="margin: 0; padding-inline-start: 1.1rem">
+                        @for (m of e.messages; track m) {
+                          <li>{{ m }}</li>
+                        }
+                      </ul>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  </div>
+  <div dsDialogFooter>
+    <button dsButton type="button" (click)="importOpen.set(false)">Cancel</button>
+    <button
+      dsButton="primary"
+      type="button"
+      [disabled]="!report()?.valid?.length"
+      (click)="importValid()"
+    >
+      Import {{ report()?.valid?.length ?? 0 }} valid row(s)
+    </button>
+  </div>
+</ds-dialog>

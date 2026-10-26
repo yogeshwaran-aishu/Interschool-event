@@ -1,0 +1,147 @@
+<ds-page-header
+  heading="Schools"
+  eyebrow="Platform"
+  lede="Every school on the network. Schools do not sign themselves up — you onboard them."
+>
+  <button dsButton="primary" type="button" (click)="openCreate()">
+    <ds-icon name="plus" /> Onboard a school
+  </button>
+</ds-page-header>
+
+<div class="toolbar">
+  <ds-field label="Search schools" hint="By name, city or board">
+    <input
+      dsControl
+      type="search"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+  </ds-field>
+  <p class="ds-muted" aria-live="polite">{{ schools().length }} school(s)</p>
+</div>
+
+@if (schools().length) {
+  <div class="ds-table-wrap">
+    <table class="ds-table ds-table--stack">
+      <caption class="ds-visually-hidden">
+        Schools on the platform
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">School</th>
+          <th scope="col">Board</th>
+          <th scope="col">City</th>
+          <th scope="col">Users</th>
+          <th scope="col">Hosted events</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="ds-visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of schools(); track s.id) {
+          <tr>
+            <td data-label="School">
+              <strong>{{ s.name }}</strong
+              ><br />
+              <span class="ds-muted">{{ s.contactEmail }}</span>
+            </td>
+            <td data-label="Board">{{ s.board }}</td>
+            <td data-label="City">{{ s.city }}</td>
+            <td data-label="Users">{{ counts(s.id).users }}</td>
+            <td data-label="Hosted events">{{ counts(s.id).events }}</td>
+            <td data-label="Status">
+              <ds-badge [tone]="s.status === 'active' ? 'success' : 'danger'">{{
+                s.status === 'active' ? 'Active' : 'Suspended'
+              }}</ds-badge>
+            </td>
+            <td data-label="Actions">
+              <button dsButton="ghost" type="button" (click)="confirmTarget.set(s)">
+                {{ s.status === 'active' ? 'Suspend' : 'Reactivate'
+                }}<span class="ds-visually-hidden"> {{ s.name }}</span>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <ds-empty-state
+    heading="No schools match"
+    message="Try a different name, city or board."
+    icon="search"
+  />
+}
+
+<ds-dialog
+  [(open)]="createOpen"
+  heading="Onboard a school"
+  description="Creates the school and its first School Admin, who receives an email to set a password."
+  [wide]="true"
+>
+  <form id="create-school" class="ds-form-grid" novalidate (submit)="create($event)">
+    <ds-field label="School name" [required]="true" [error]="errorOf('name')" class="ds-span-all">
+      <input dsControl autocomplete="organization" [formField]="form.name" />
+    </ds-field>
+    <ds-field label="Board" [required]="true">
+      <select dsControl [formField]="form.board">
+        @for (b of boards; track b) {
+          <option [value]="b">{{ b }}</option>
+        }
+      </select>
+    </ds-field>
+    <ds-field label="City" [required]="true" [error]="errorOf('city')">
+      <input dsControl autocomplete="address-level2" [formField]="form.city" />
+    </ds-field>
+    <ds-field label="Address" [required]="true" [error]="errorOf('address')" class="ds-span-all">
+      <input dsControl autocomplete="street-address" [formField]="form.address" />
+    </ds-field>
+    <ds-field label="Office email" [required]="true" [error]="errorOf('contactEmail')">
+      <input dsControl type="email" autocomplete="email" [formField]="form.contactEmail" />
+    </ds-field>
+    <ds-field label="Office phone" [required]="true" [error]="errorOf('contactPhone')">
+      <input dsControl type="tel" autocomplete="tel" [formField]="form.contactPhone" />
+    </ds-field>
+    <ds-field label="School Admin name" [required]="true" [error]="errorOf('adminName')">
+      <input dsControl autocomplete="off" [formField]="form.adminName" />
+    </ds-field>
+    <ds-field
+      label="School Admin email"
+      [required]="true"
+      [error]="errorOf('adminEmail')"
+      hint="The set-password invitation goes here."
+    >
+      <input dsControl type="email" autocomplete="off" [formField]="form.adminEmail" />
+    </ds-field>
+  </form>
+  <div dsDialogFooter>
+    <button dsButton type="button" (click)="createOpen.set(false)">Cancel</button>
+    <button dsButton="primary" type="submit" form="create-school">Create school</button>
+  </div>
+</ds-dialog>
+
+<ds-dialog
+  [open]="!!confirmTarget()"
+  (openChange)="!$event && confirmTarget.set(null)"
+  [heading]="
+    confirmTarget()?.status === 'active'
+      ? 'Suspend ' + confirmTarget()?.name + '?'
+      : 'Reactivate ' + confirmTarget()?.name + '?'
+  "
+  [description]="
+    confirmTarget()?.status === 'active'
+      ? 'Its users will not be able to sign in, and it cannot be invited to new events. You can reactivate it later.'
+      : 'Its users will be able to sign in again.'
+  "
+>
+  <div dsDialogFooter>
+    <button dsButton type="button" (click)="confirmTarget.set(null)">Cancel</button>
+    <button
+      [dsButton]="confirmTarget()?.status === 'active' ? 'danger' : 'primary'"
+      type="button"
+      (click)="toggleStatus()"
+    >
+      {{ confirmTarget()?.status === 'active' ? 'Suspend school' : 'Reactivate school' }}
+    </button>
+  </div>
+</ds-dialog>

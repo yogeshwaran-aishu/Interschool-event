@@ -1,0 +1,179 @@
+@if (invitation() && event(); as e) {
+  <nav class="ds-breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a routerLink="/approvals">Approvals</a></li>
+      <li>
+        <span aria-current="page">{{ e.title }}</span>
+      </li>
+    </ol>
+  </nav>
+
+  <ds-page-header
+    [heading]="e.title"
+    [eyebrow]="'Hosted by ' + domain.school(e.hostSchoolId)?.name"
+    lede="Approve who represents your school. The host only sees nominations you approve and send."
+  >
+    @if (isAdmin()) {
+      <button dsButton type="button" (click)="openCoordinators()">
+        <ds-icon name="users" /> Reviewers
+      </button>
+    }
+    <button
+      dsButton="primary"
+      type="button"
+      [disabled]="locked() || !unsent()"
+      (click)="submitOpen.set(true)"
+    >
+      <ds-icon name="send" /> Send {{ unsent() }} to host
+    </button>
+  </ds-page-header>
+
+  @if (locked()) {
+    <div class="ds-callout ds-callout--warning banner">
+      <ds-icon name="lock" />
+      <p>
+        The registration deadline ({{ e.regDeadline | date: 'd MMM, h:mm a' }}) has passed, so this
+        list is locked.
+      </p>
+    </div>
+  } @else {
+    <div class="ds-callout banner">
+      <ds-icon name="clock" />
+      <p>
+        You can change decisions and send more nominations until
+        <strong>{{ e.regDeadline | date: 'EEEE d MMM, h:mm a' }}</strong
+        >.
+      </p>
+    </div>
+  }
+
+  @for (g of groups(); track g.category.id) {
+    <section class="group" [attr.aria-labelledby]="'cat-' + g.category.id">
+      <ds-card>
+        <div class="group__head">
+          <div>
+            <h2 [id]="'cat-' + g.category.id" class="group__title">{{ g.category.name }}</h2>
+            <p class="ds-muted group__meta">
+              {{ classRange(g.category.minClass, g.category.maxClass) }} ·
+              {{ g.category.type === 'team' ? 'Team of ' + g.category.teamSize : 'Individual' }}
+            </p>
+          </div>
+          <ds-meter
+            class="group__meter"
+            label="Approved against limit"
+            [value]="g.approved"
+            [max]="g.category.maxPerSchool"
+          />
+        </div>
+
+        @if (g.rows.length) {
+          <ul class="apps">
+            @for (row of g.rows; track row.reg.id) {
+              <li class="app">
+                <div class="app__who">
+                  <strong>{{ row.user.name }}</strong>
+                  <span class="ds-muted"
+                    >Class {{ row.profile.className }}{{ row.profile.section }} ·
+                    {{ row.profile.admissionNo }} · applied
+                    {{ row.reg.appliedAt | date: 'd MMM' }}</span
+                  >
+                </div>
+                <div class="app__status">
+                  <ds-badge [tone]="schoolDecision[row.reg.schoolStatus].tone">{{
+                    schoolDecision[row.reg.schoolStatus].label
+                  }}</ds-badge>
+                  @if (row.reg.schoolStatus === 'approved') {
+                    <ds-badge [tone]="hostDecision[row.reg.hostStatus].tone">{{
+                      hostDecision[row.reg.hostStatus].label
+                    }}</ds-badge>
+                  }
+                </div>
+                @if (!locked() && row.reg.hostStatus === 'not_submitted') {
+                  <div class="row-actions">
+                    @if (row.reg.schoolStatus !== 'approved') {
+                      <button
+                        dsButton="primary"
+                        type="button"
+                        [attr.aria-disabled]="g.approved >= g.category.maxPerSchool ? 'true' : null"
+                        (click)="decide(row.reg.id, true, row.user.name)"
+                      >
+                        <ds-icon name="check" /> Approve<span class="ds-visually-hidden">
+                          {{ row.user.name }}</span
+                        >
+                      </button>
+                    }
+                    @if (row.reg.schoolStatus !== 'rejected') {
+                      <button
+                        dsButton
+                        type="button"
+                        (click)="decide(row.reg.id, false, row.user.name)"
+                      >
+                        <ds-icon name="x" />
+                        {{ row.reg.schoolStatus === 'approved' ? 'Undo approval' : 'Reject'
+                        }}<span class="ds-visually-hidden"> {{ row.user.name }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="ds-muted">No applications in this category yet.</p>
+        }
+      </ds-card>
+    </section>
+  }
+
+  <ds-dialog
+    [(open)]="submitOpen"
+    heading="Send nominations to the host?"
+    [description]="
+      'You are sending ' +
+      unsent() +
+      ' approved student(s). You can still send more before the deadline, but you cannot change these once sent.'
+    "
+  >
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="submitOpen.set(false)">Not yet</button>
+      <button dsButton="primary" type="button" (click)="submit()">
+        <ds-icon name="send" /> Send to host
+      </button>
+    </div>
+  </ds-dialog>
+
+  <ds-dialog
+    [(open)]="coordOpen"
+    heading="Reviewers for this event"
+    description="Teachers you pick can approve or reject applications for this event."
+  >
+    <fieldset style="border: 0; margin: 0; padding: 0; display: grid; gap: var(--ds-space-1)">
+      <legend class="ds-visually-hidden">Teachers</legend>
+      @for (t of teachers(); track t.id) {
+        <label class="ds-check">
+          <input
+            type="checkbox"
+            [checked]="selectedCoords().includes(t.id)"
+            (change)="toggleCoord(t.id, $any($event.target).checked)"
+          />
+          <span>{{ t.name }}</span>
+        </label>
+      } @empty {
+        <p class="ds-muted">No teachers yet.</p>
+      }
+    </fieldset>
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="coordOpen.set(false)">Cancel</button>
+      <button dsButton="primary" type="button" (click)="saveCoordinators()">Save</button>
+    </div>
+  </ds-dialog>
+} @else {
+  <ds-page-header heading="Nothing to review here" />
+  <ds-empty-state
+    heading="No applications for you here"
+    message="This invitation was not accepted by your school, or you are not a reviewer for it."
+    icon="search"
+  >
+    <a dsButton routerLink="/approvals">Back to approvals</a>
+  </ds-empty-state>
+}
