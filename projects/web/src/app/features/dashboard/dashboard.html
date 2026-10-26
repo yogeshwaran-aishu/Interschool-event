@@ -1,0 +1,200 @@
+<section class="ds-hero hero" aria-labelledby="dash-title">
+  <div class="hero__text">
+    <p class="ds-eyebrow hero__eyebrow">{{ school()?.name ?? 'Platform operations' }}</p>
+    <h1 id="dash-title" data-page-heading tabindex="-1">Hello, {{ firstName() }}</h1>
+    @switch (user()!.role) {
+      @case ('app_admin') {
+        <p>
+          Onboard schools and keep the network healthy. You see counts only — never student details.
+        </p>
+      }
+      @case ('student') {
+        <p>Find competitions your school has joined, apply, and follow your nominations.</p>
+      }
+      @default {
+        <p>Host competitions, answer invitations and review your students’ applications.</p>
+      }
+    }
+  </div>
+  <div class="ds-cluster">
+    @switch (user()!.role) {
+      @case ('app_admin') {
+        <a dsButton="primary" routerLink="/schools"><ds-icon name="plus" /> Onboard a school</a>
+      }
+      @case ('student') {
+        <a dsButton="primary" routerLink="/explore"><ds-icon name="trophy" /> Explore events</a>
+      }
+      @default {
+        @if (domain.canHostEvents()) {
+          <a dsButton="primary" routerLink="/events/new"><ds-icon name="plus" /> Create event</a>
+        }
+        <a dsButton routerLink="/approvals"><ds-icon name="clipboard" /> Review applications</a>
+      }
+    }
+  </div>
+</section>
+
+<h2 class="ds-visually-hidden">At a glance</h2>
+@switch (user()!.role) {
+  @case ('app_admin') {
+    <div class="ds-grid stats">
+      <ds-stat label="Active schools" [value]="platform().activeSchools" icon="school" />
+      <ds-stat
+        label="Suspended schools"
+        [value]="platform().suspendedSchools"
+        icon="ban"
+        tone="warning"
+      />
+      <ds-stat
+        label="Events open now"
+        [value]="platform().liveEvents"
+        icon="calendar"
+        tone="accent"
+      />
+      <ds-stat
+        label="Active applications"
+        [value]="platform().registrations"
+        icon="file-text"
+        tone="success"
+      />
+    </div>
+  }
+  @case ('student') {
+    <div class="ds-grid stats">
+      <ds-stat label="Events open to you" [value]="studentEvents().length" icon="trophy" />
+      <ds-stat
+        label="Active applications"
+        [value]="myRegs().length"
+        icon="file-text"
+        tone="accent"
+      />
+      <ds-stat
+        label="Confirmed participations"
+        [value]="confirmed().length"
+        icon="check-circle"
+        tone="success"
+      />
+    </div>
+
+    <section class="section" aria-labelledby="open-title">
+      <div class="section__head">
+        <h2 id="open-title">Open to you</h2>
+        <a routerLink="/explore">See all open events</a>
+      </div>
+      @for (item of studentEvents().slice(0, 3); track item.event.id) {
+        <ds-card [interactive]="true" class="event-row">
+          <div class="event-row__date" aria-hidden="true">
+            <span>{{ item.event.startsAt | date: 'MMM' }}</span
+            ><strong>{{ item.event.startsAt | date: 'd' }}</strong>
+          </div>
+          <div class="event-row__body">
+            <h3>{{ item.event.title }}</h3>
+            <p class="ds-muted">
+              Hosted by {{ schoolName(item.event.hostSchoolId) }} · Apply by
+              {{ item.event.regDeadline | date: 'd MMM, h:mm a' }}
+            </p>
+          </div>
+          <a dsButton="soft" routerLink="/explore"
+            >View categories<span class="ds-visually-hidden"> for {{ item.event.title }}</span></a
+          >
+        </ds-card>
+      } @empty {
+        <ds-empty-state
+          [level]="3"
+          heading="Nothing open yet"
+          message="When your school accepts an invitation you are eligible for, it appears here."
+          icon="trophy"
+        />
+      }
+    </section>
+  }
+  @default {
+    <div class="ds-grid stats">
+      <ds-stat label="Hosted events" [value]="hosted().length" icon="calendar" />
+      @if (user()!.role === 'school_admin') {
+        <ds-stat
+          label="Invitations awaiting your reply"
+          [value]="pendingInvites().length"
+          icon="inbox"
+          tone="warning"
+        />
+      }
+      <ds-stat
+        label="Applications to review"
+        [value]="toReview().length"
+        icon="clipboard"
+        tone="accent"
+      />
+      <ds-stat
+        label="Nominations awaiting your decision"
+        [value]="awaitingHost().length"
+        icon="users"
+        tone="success"
+      />
+    </div>
+
+    <div class="ds-split section">
+      <section aria-labelledby="hosted-title" class="ds-stack">
+        <div class="section__head">
+          <h2 id="hosted-title">Your hosted events</h2>
+          <a routerLink="/events">All hosted events</a>
+        </div>
+        @for (e of hosted().slice(0, 4); track e.id) {
+          <ds-card [interactive]="true" class="event-row">
+            <div class="event-row__date" aria-hidden="true">
+              <span>{{ e.startsAt | date: 'MMM' }}</span
+              ><strong>{{ e.startsAt | date: 'd' }}</strong>
+            </div>
+            <div class="event-row__body">
+              <h3>
+                <a [routerLink]="['/events', e.id]">{{ e.title }}</a>
+              </h3>
+              <p class="ds-muted">
+                {{ acceptedCount(e.id) }} school(s) accepted · Deadline
+                {{ e.regDeadline | date: 'd MMM' }}
+              </p>
+            </div>
+            <ds-badge [tone]="eventStatus[e.status].tone">{{
+              eventStatus[e.status].label
+            }}</ds-badge>
+          </ds-card>
+        } @empty {
+          <ds-empty-state
+            [level]="3"
+            heading="No hosted events yet"
+            message="Create an event, add categories and invite schools in a few minutes."
+            icon="calendar"
+          />
+        }
+      </section>
+
+      @if (user()!.role === 'school_admin') {
+        <section aria-labelledby="invites-title" class="ds-stack">
+          <div class="section__head">
+            <h2 id="invites-title">Invitations</h2>
+            <a routerLink="/invitations">All invitations</a>
+          </div>
+          <ds-card>
+            <ul class="mini-list">
+              @for (i of received().slice(0, 5); track i.id) {
+                <li>
+                  <div>
+                    <p class="mini-list__title">{{ eventTitle(i.eventId) }}</p>
+                    <p class="ds-muted mini-list__meta">
+                      From {{ schoolName(domain.event(i.eventId)!.hostSchoolId) }}
+                    </p>
+                  </div>
+                  <ds-badge [tone]="invitationStatus[i.status].tone">{{
+                    invitationStatus[i.status].label
+                  }}</ds-badge>
+                </li>
+              } @empty {
+                <li class="ds-muted">No invitations received yet.</li>
+              }
+            </ul>
+          </ds-card>
+        </section>
+      }
+    </div>
+  }
+}

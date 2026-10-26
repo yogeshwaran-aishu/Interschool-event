@@ -1,0 +1,154 @@
+@if (user(); as u) {
+  <div class="shell">
+    <aside class="sidebar">
+      <a routerLink="/dashboard" class="brand">
+        <span class="brand__mark" aria-hidden="true"><ds-icon name="trophy" /></span>
+        <span class="brand__name">InterSchool <span>Connect</span></span>
+      </a>
+
+      <nav aria-label="Main" class="sidebar__nav">
+        <ul>
+          @for (item of nav(); track item.path) {
+            <li>
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="is-active"
+                ariaCurrentWhenActive="page"
+                class="nav-link"
+              >
+                <ds-icon [name]="item.icon" />
+                <span class="nav-link__label">{{ item.label }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      @if (school(); as s) {
+        <div class="sidebar__school">
+          <ds-icon name="school" />
+          <div>
+            <p class="sidebar__school-name">{{ s.name }}</p>
+            <p class="ds-muted sidebar__school-meta">{{ s.board }} · {{ s.city }}</p>
+          </div>
+        </div>
+      }
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar">
+        <button
+          dsButton="ghost"
+          size="icon"
+          type="button"
+          class="topbar__menu"
+          (click)="drawerOpen.set(true)"
+          aria-label="Open menu"
+        >
+          <ds-icon name="menu" />
+        </button>
+        <a routerLink="/dashboard" class="brand brand--compact">
+          <span class="brand__mark" aria-hidden="true"><ds-icon name="trophy" /></span>
+          <span class="brand__name">InterSchool <span>Connect</span></span>
+        </a>
+
+        <div class="topbar__actions">
+          <a
+            dsButton="ghost"
+            size="icon"
+            routerLink="/notifications"
+            class="topbar__bell"
+            [attr.aria-label]="
+              unread() ? 'Notifications, ' + unread() + ' unread' : 'Notifications'
+            "
+          >
+            <ds-icon name="bell" />
+            @if (unread()) {
+              <span class="topbar__count" aria-hidden="true">{{ unread() }}</span>
+            }
+          </a>
+          <button
+            dsButton="ghost"
+            size="icon"
+            type="button"
+            (click)="prefsOpen.set(true)"
+            aria-label="Display preferences"
+          >
+            <ds-icon name="settings" />
+          </button>
+          <div class="topbar__user">
+            <ds-avatar [name]="u.name" [size]="40" />
+            <div class="topbar__user-text">
+              <p class="topbar__user-name">{{ u.name }}</p>
+              <p class="ds-muted topbar__user-role">{{ roleLabel() }}</p>
+            </div>
+          </div>
+          <button
+            dsButton="ghost"
+            size="icon"
+            type="button"
+            (click)="signOut()"
+            aria-label="Sign out"
+          >
+            <ds-icon name="logout" />
+          </button>
+        </div>
+      </header>
+
+      <main id="main" tabindex="-1" class="content">
+        <router-outlet />
+      </main>
+    </div>
+
+    <nav aria-label="Quick links" class="bottom-nav">
+      <ul>
+        @for (item of bottomNav(); track item.path) {
+          <li>
+            <a [routerLink]="item.path" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+              <ds-icon [name]="item.icon" />
+              <span>{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+  </div>
+
+  <ds-dialog [(open)]="drawerOpen" heading="Menu">
+    <nav aria-label="Main">
+      <ul class="drawer-nav">
+        @for (item of nav(); track item.path) {
+          <li>
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="is-active"
+              ariaCurrentWhenActive="page"
+              class="nav-link"
+              (click)="drawerOpen.set(false)"
+            >
+              <ds-icon [name]="item.icon" />
+              <span>{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="signOut()"><ds-icon name="logout" /> Sign out</button>
+    </div>
+  </ds-dialog>
+
+  <ds-dialog
+    [(open)]="prefsOpen"
+    heading="Display preferences"
+    description="Saved on this device. Applies to every page."
+  >
+    <ds-preferences-panel />
+    <div dsDialogFooter>
+      <button dsButton="ghost" type="button" (click)="resetDemo()">
+        <ds-icon name="history" /> Reset demo data
+      </button>
+      <button dsButton="primary" type="button" (click)="prefsOpen.set(false)">Done</button>
+    </div>
+  </ds-dialog>
+}

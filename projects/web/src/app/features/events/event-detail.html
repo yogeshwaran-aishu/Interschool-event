@@ -1,0 +1,407 @@
+@if (event(); as e) {
+  <nav class="ds-breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a routerLink="/events">Hosted events</a></li>
+      <li>
+        <span aria-current="page">{{ e.title }}</span>
+      </li>
+    </ol>
+  </nav>
+
+  <section class="ds-hero head" aria-labelledby="event-title">
+    <div class="head__text">
+      <ds-badge [tone]="eventStatus[e.status].tone" class="head__badge">{{
+        eventStatus[e.status].label
+      }}</ds-badge>
+      <h1 id="event-title" data-page-heading tabindex="-1">{{ e.title }}</h1>
+      <ul class="head__meta">
+        <li><ds-icon name="calendar" /> {{ e.startsAt | date: 'EEEE d MMMM y, h:mm a' }}</li>
+        <li><ds-icon name="map-pin" /> {{ e.venue }}</li>
+        <li>
+          <ds-icon name="clock" /> Registration closes {{ e.regDeadline | date: 'd MMM, h:mm a' }}
+        </li>
+      </ul>
+    </div>
+    <div class="ds-cluster head__actions">
+      @if (e.status === 'draft') {
+        <button dsButton="primary" type="button" (click)="publish()">
+          <ds-icon name="send" /> Publish
+        </button>
+      }
+      @if (canInvite()) {
+        <button dsButton="primary" type="button" (click)="openInvite()">
+          <ds-icon name="plus" /> Invite schools
+        </button>
+      }
+      @if (editable()) {
+        <a dsButton [routerLink]="['/events', e.id, 'edit']"><ds-icon name="edit" /> Edit</a>
+        <button
+          dsButton
+          type="button"
+          (click)="cancelReason.set(''); cancelError.set(null); cancelOpen.set(true)"
+        >
+          <ds-icon name="ban" /> Cancel event
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (e.status === 'cancelled') {
+    <div class="ds-callout ds-callout--danger" style="margin-bottom: var(--ds-space-5)">
+      <ds-icon name="ban" />
+      <p><strong>Cancelled.</strong> {{ e.cancelReason }}</p>
+    </div>
+  }
+
+  <nav class="ds-tabs" aria-label="Event sections">
+    @for (t of tabs; track t.id) {
+      <a
+        [routerLink]="['/events', e.id, t.id]"
+        [attr.aria-current]="tab() === t.id ? 'page' : null"
+      >
+        {{ t.label }}
+        @if (t.id === 'invitations') {
+          ({{ invitations().length }})
+        }
+        @if (t.id === 'nominations') {
+          ({{ domain.hostNominations(e.id).length }})
+        }
+      </a>
+    }
+  </nav>
+
+  @switch (tab()) {
+    @case ('overview') {
+      <div class="ds-split">
+        <div class="ds-stack" style="--ds-stack-gap: var(--ds-space-5)">
+          <ds-card>
+            <h2 class="ds-card__title block-title">About this event</h2>
+            <p>{{ e.description || 'No description yet.' }}</p>
+          </ds-card>
+          <ds-card [flush]="true">
+            <div class="ds-table-wrap" style="border: 0">
+              <table class="ds-table ds-table--stack">
+                <caption>
+                  Categories
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Category</th>
+                    <th scope="col">Eligibility</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Per-school limit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of categories(); track c.id) {
+                    <tr>
+                      <td data-label="Category">
+                        <strong>{{ c.name }}</strong>
+                      </td>
+                      <td data-label="Eligibility">
+                        {{ classRange(c.minClass, c.maxClass)
+                        }}{{
+                          c.genderRule === 'any'
+                            ? ''
+                            : c.genderRule === 'female'
+                              ? ', girls'
+                              : ', boys'
+                        }}
+                      </td>
+                      <td data-label="Type">
+                        {{ c.type === 'team' ? 'Team of ' + c.teamSize : 'Individual' }}
+                      </td>
+                      <td data-label="Per-school limit">{{ c.maxPerSchool }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ds-card>
+        </div>
+        <ds-card class="ds-stack">
+          <h2 class="ds-card__title">Coordination</h2>
+          <dl class="ds-dl">
+            <dt>Host</dt>
+            <dd>{{ domain.school(e.hostSchoolId)?.name }}</dd>
+            <dt>Coordinators</dt>
+            <dd>{{ coordinatorNames() }}</dd>
+            <dt>Created by</dt>
+            <dd>{{ domain.user(e.createdBy)?.name }}</dd>
+          </dl>
+          @if (isAdmin() && editable()) {
+            <button dsButton="soft" type="button" (click)="openCoordinators()">
+              <ds-icon name="users" /> Assign coordinators
+            </button>
+          }
+        </ds-card>
+      </div>
+    }
+
+    @case ('invitations') {
+      @if (invitations().length) {
+        <div class="ds-table-wrap">
+          <table class="ds-table ds-table--stack">
+            <caption class="ds-visually-hidden">
+              Invited schools and their replies
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">School</th>
+                <th scope="col">Status</th>
+                <th scope="col">Replied</th>
+                <th scope="col">Note</th>
+                <th scope="col"><span class="ds-visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of invitations(); track i.id) {
+                <tr>
+                  <td data-label="School">
+                    <strong>{{ i.school }}</strong>
+                  </td>
+                  <td data-label="Status">
+                    <ds-badge [tone]="invitationStatus[i.status].tone">{{
+                      invitationStatus[i.status].label
+                    }}</ds-badge>
+                  </td>
+                  <td data-label="Replied">
+                    {{ i.respondedAt ? (i.respondedAt | date: 'd MMM') : '—' }}
+                  </td>
+                  <td data-label="Note">{{ i.note ?? '—' }}</td>
+                  <td data-label="Actions">
+                    @if (i.status === 'pending') {
+                      <button dsButton="ghost" type="button" (click)="revoke(i.id, i.school)">
+                        Revoke<span class="ds-visually-hidden"> invitation to {{ i.school }}</span>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <ds-empty-state
+          heading="No schools invited yet"
+          [message]="
+            e.status === 'draft'
+              ? 'Publish the event first, then invite schools.'
+              : 'Pick schools from the platform directory.'
+          "
+          icon="send"
+        >
+          @if (canInvite()) {
+            <button dsButton="primary" type="button" (click)="openInvite()">
+              <ds-icon name="plus" /> Invite schools
+            </button>
+          }
+        </ds-empty-state>
+      }
+    }
+
+    @case ('nominations') {
+      <div class="toolbar">
+        <div class="ds-cluster filters">
+          <ds-field label="School">
+            <select
+              dsControl
+              [value]="schoolFilter()"
+              (change)="schoolFilter.set($any($event.target).value)"
+            >
+              <option value="">All schools</option>
+              @for (s of nominationSchools(); track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          </ds-field>
+          <ds-field label="Category">
+            <select
+              dsControl
+              [value]="categoryFilter()"
+              (change)="categoryFilter.set($any($event.target).value)"
+            >
+              <option value="">All categories</option>
+              @for (c of categories(); track c.id) {
+                <option [value]="c.name">{{ c.name }}</option>
+              }
+            </select>
+          </ds-field>
+        </div>
+        <div class="ds-cluster">
+          <button dsButton type="button" [disabled]="!confirmedCount()" (click)="exportCsv()">
+            <ds-icon name="download" /> Export <abbr title="Comma-separated values">CSV</abbr>
+          </button>
+          <button dsButton type="button" [disabled]="!confirmedCount()" (click)="exportPdf()">
+            <ds-icon name="file-text" /> Print / PDF
+          </button>
+        </div>
+      </div>
+      <p class="ds-muted note">
+        Exports include confirmed participants only: name, class, school and category. Guardian
+        contacts stay with each student’s school.
+      </p>
+
+      @if (nominations().length) {
+        <div class="ds-table-wrap">
+          <table class="ds-table ds-table--stack">
+            <caption class="ds-visually-hidden">
+              Nominations submitted by schools
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Student</th>
+                <th scope="col">Class</th>
+                <th scope="col">School</th>
+                <th scope="col">Category</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="ds-visually-hidden">Decision</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (n of nominations(); track n.registrationId) {
+                <tr>
+                  <td data-label="Student">
+                    <strong>{{ n.studentName }}</strong>
+                  </td>
+                  <td data-label="Class">{{ n.className }}</td>
+                  <td data-label="School">{{ n.schoolName }}</td>
+                  <td data-label="Category">{{ n.categoryName }}</td>
+                  <td data-label="Status">
+                    <ds-badge [tone]="hostDecision[n.hostStatus].tone">{{
+                      hostDecision[n.hostStatus].label
+                    }}</ds-badge>
+                  </td>
+                  <td data-label="Decision">
+                    <div class="row-actions">
+                      @if (n.hostStatus !== 'confirmed') {
+                        <button
+                          dsButton="primary"
+                          type="button"
+                          (click)="decide(n.registrationId, true, n.studentName)"
+                        >
+                          <ds-icon name="check" /> Confirm<span class="ds-visually-hidden">
+                            {{ n.studentName }}</span
+                          >
+                        </button>
+                      }
+                      @if (n.hostStatus !== 'rejected') {
+                        <button
+                          dsButton
+                          type="button"
+                          (click)="decide(n.registrationId, false, n.studentName)"
+                        >
+                          <ds-icon name="x" /> Reject<span class="ds-visually-hidden">
+                            {{ n.studentName }}</span
+                          >
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <ds-empty-state
+          heading="No nominations yet"
+          message="Schools submit nominations after approving their students’ applications."
+          icon="users"
+        />
+      }
+    }
+  }
+
+  <ds-dialog
+    [(open)]="inviteOpen"
+    heading="Invite schools"
+    description="Only active schools that have not been invited are listed."
+  >
+    @if (invitable().length) {
+      <fieldset class="pick">
+        <legend class="ds-visually-hidden">Schools to invite</legend>
+        @for (s of invitable(); track s.id) {
+          <label class="ds-check pick__item">
+            <input
+              type="checkbox"
+              [checked]="selectedSchools().includes(s.id)"
+              (change)="toggle(selectedSchools, s.id, $any($event.target).checked)"
+            />
+            <span
+              ><strong>{{ s.name }}</strong>
+              <span class="ds-muted">· {{ s.board }}, {{ s.city }}</span></span
+            >
+          </label>
+        }
+      </fieldset>
+    } @else {
+      <p class="ds-muted">Every active school has already been invited.</p>
+    }
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="inviteOpen.set(false)">Cancel</button>
+      <button
+        dsButton="primary"
+        type="button"
+        [disabled]="!selectedSchools().length"
+        (click)="sendInvites()"
+      >
+        <ds-icon name="send" /> Send {{ selectedSchools().length || '' }} invitation(s)
+      </button>
+    </div>
+  </ds-dialog>
+
+  <ds-dialog
+    [(open)]="cancelOpen"
+    heading="Cancel this event?"
+    description="This cannot be undone. Every accepted school and applied student is notified with your reason."
+  >
+    <ds-field label="Reason" [required]="true" [error]="cancelError()">
+      <textarea
+        dsControl
+        rows="3"
+        [value]="cancelReason()"
+        (input)="cancelReason.set($any($event.target).value); cancelError.set(null)"
+      ></textarea>
+    </ds-field>
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="cancelOpen.set(false)">Keep event</button>
+      <button dsButton="danger" type="button" (click)="confirmCancel()">Cancel event</button>
+    </div>
+  </ds-dialog>
+
+  <ds-dialog
+    [(open)]="coordOpen"
+    heading="Assign coordinators"
+    description="Coordinators can manage invitations and confirm nominations for this event."
+  >
+    <fieldset class="pick">
+      <legend class="ds-visually-hidden">Teachers</legend>
+      @for (t of teachers(); track t.id) {
+        <label class="ds-check pick__item">
+          <input
+            type="checkbox"
+            [checked]="selectedCoords().includes(t.id)"
+            (change)="toggle(selectedCoords, t.id, $any($event.target).checked)"
+          />
+          <span>{{ t.name }}</span>
+        </label>
+      } @empty {
+        <p class="ds-muted">No teachers yet. Import teachers from the People page.</p>
+      }
+    </fieldset>
+    <div dsDialogFooter>
+      <button dsButton type="button" (click)="coordOpen.set(false)">Cancel</button>
+      <button dsButton="primary" type="button" (click)="saveCoordinators()">Save</button>
+    </div>
+  </ds-dialog>
+} @else {
+  <ds-page-header heading="Event not found" />
+  <ds-empty-state
+    heading="This event isn’t available"
+    message="It may have been removed, or it belongs to another school."
+    icon="search"
+  >
+    <a dsButton routerLink="/events">Back to hosted events</a>
+  </ds-empty-state>
+}

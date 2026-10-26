@@ -1,0 +1,33 @@
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-5);
+  margin-bottom: var(--ds-space-6);
+
+  &__text {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: var(--ds-space-2);
+    max-width: 40rem;
+  }
+
+  &__eyebrow {
+    color: #ffffff;
+  }
+
+  h1:focus {
+    outline-color: #ffffff;
+  }
+}
+
+.stats {
+  --ds-grid-min: 220px;
+
+  @media (max-width: 599px) {
+    --ds-grid-min: 140px;
+    --ds-grid-gap: var(--ds-space-3);
+  }
+}

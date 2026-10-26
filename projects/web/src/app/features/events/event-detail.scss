@@ -1,0 +1,79 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-5);
+  margin-bottom: var(--ds-space-5);
+
+  &__text {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: var(--ds-space-3);
+    max-width: 44rem;
+  }
+
+  &__badge {
+    justify-self: start;
+  }
+
+  h1 {
+    font-size: var(--ds-fs-2xl);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-2) var(--ds-space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-weight: 600;
+
+    li {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-space-2);
+    }
+
+    ::ng-deep svg {
+      width: 18px;
+    }
+  }
+
+  &__actions {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.block-title {
+  margin-bottom: var(--ds-space-3);
+}
+
+.filters ds-field {
+  min-width: 12rem;
+}
+
+.note {
+  margin-bottom: var(--ds-space-4);
+  font-size: var(--ds-fs-sm);
+}
+
+.pick {
+  display: grid;
+  gap: var(--ds-space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  &__item {
+    padding: var(--ds-space-1) var(--ds-space-3);
+    border-radius: var(--ds-radius-md);
+
+    &:hover {
+      background: var(--ds-surface-2);
+    }
+  }
+}

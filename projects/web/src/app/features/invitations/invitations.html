@@ -1,0 +1,138 @@
+<ds-page-header
+  heading="Invitations"
+  eyebrow="Guest school"
+  lede="Events other schools have invited you to. Accept to let your eligible students apply."
+/>
+
+<section aria-labelledby="pending-title" class="block">
+  <h2 id="pending-title" class="block__title">Awaiting your reply ({{ pending().length }})</h2>
+  @for (item of pending(); track item.invitation.id) {
+    <ds-card class="invite">
+      <div class="invite__main">
+        <p class="ds-eyebrow">From {{ item.host }}</p>
+        <h3 class="invite__title">{{ item.event.title }}</h3>
+        <p class="ds-muted">{{ item.event.description }}</p>
+        <ul class="meta-list">
+          <li>
+            <ds-icon name="calendar" /> {{ item.event.startsAt | date: 'EEE d MMM y, h:mm a' }}
+          </li>
+          <li><ds-icon name="map-pin" /> {{ item.event.venue }}</li>
+          <li>
+            <ds-icon name="clock" /> Reply by {{ item.event.regDeadline | date: 'd MMM, h:mm a' }}
+          </li>
+        </ul>
+        <ul class="chips" aria-label="Categories">
+          @for (c of item.categories; track c.id) {
+            <li>
+              {{ c.name }} · {{ classRange(c.minClass, c.maxClass) }} · up to {{ c.maxPerSchool }}
+            </li>
+          }
+        </ul>
+      </div>
+      <div class="invite__actions">
+        <button
+          dsButton="primary"
+          type="button"
+          (click)="respond(item.invitation, true, item.event.title)"
+        >
+          <ds-icon name="check" /> Accept<span class="ds-visually-hidden">
+            {{ item.event.title }}</span
+          >
+        </button>
+        <button dsButton type="button" (click)="respond(item.invitation, false, item.event.title)">
+          <ds-icon name="x" /> Decline<span class="ds-visually-hidden">
+            {{ item.event.title }}</span
+          >
+        </button>
+      </div>
+    </ds-card>
+  } @empty {
+    <ds-empty-state
+      [level]="3"
+      heading="You’re all caught up"
+      message="New invitations will appear here and in your email."
+      icon="inbox"
+    />
+  }
+</section>
+
+@if (answered().length) {
+  <section aria-labelledby="answered-title" class="block">
+    <h2 id="answered-title" class="block__title">Answered and closed</h2>
+    <div class="ds-table-wrap">
+      <table class="ds-table ds-table--stack">
+        <caption class="ds-visually-hidden">
+          Answered and closed invitations
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Event</th>
+            <th scope="col">Host</th>
+            <th scope="col">Status</th>
+            <th scope="col">Your note</th>
+            <th scope="col"><span class="ds-visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of answered(); track item.invitation.id) {
+            <tr>
+              <td data-label="Event">
+                <strong>{{ item.event.title }}</strong
+                ><br /><span class="ds-muted">{{ item.event.startsAt | date: 'd MMM y' }}</span>
+              </td>
+              <td data-label="Host">{{ item.host }}</td>
+              <td data-label="Status">
+                <ds-badge [tone]="status[item.invitation.status].tone">{{
+                  status[item.invitation.status].label
+                }}</ds-badge>
+              </td>
+              <td data-label="Your note">{{ item.invitation.note ?? '—' }}</td>
+              <td data-label="Actions">
+                @if (item.invitation.status === 'accepted') {
+                  <a dsButton="soft" [routerLink]="['/approvals', item.invitation.id]"
+                    >Review applications<span class="ds-visually-hidden">
+                      for {{ item.event.title }}</span
+                    ></a
+                  >
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+
+<ds-dialog
+  [open]="!!responding()"
+  (openChange)="!$event && responding.set(null)"
+  [heading]="(responding()?.accept ? 'Accept ' : 'Decline ') + (responding()?.title ?? '')"
+  [description]="
+    responding()?.accept
+      ? 'Your eligible students will be told the event is open and can apply.'
+      : 'The host school will see your reply and note.'
+  "
+>
+  <ds-field
+    label="Note to the host (optional)"
+    hint="For example, how many students you expect to send."
+  >
+    <textarea
+      dsControl
+      rows="3"
+      [value]="note()"
+      (input)="note.set($any($event.target).value)"
+    ></textarea>
+  </ds-field>
+  <div dsDialogFooter>
+    <button dsButton type="button" (click)="responding.set(null)">Back</button>
+    <button
+      [dsButton]="responding()?.accept ? 'primary' : 'danger'"
+      type="button"
+      (click)="confirm()"
+    >
+      {{ responding()?.accept ? 'Accept invitation' : 'Decline invitation' }}
+    </button>
+  </div>
+</ds-dialog>

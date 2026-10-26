@@ -1,0 +1,145 @@
+// InterSchool design tokens.
+// Every text/background pair below is checked to WCAG 2.2 AAA (7:1 for body text,
+// 4.5:1 for large text) and non-text UI to at least 3:1. Run `npm run tokens:check`
+// after changing a colour.
+
+@mixin light-tokens {
+  color-scheme: light;
+
+  --ds-bg: #f5f6fb;
+  --ds-bg-accent-1: #e6e4ff;
+  --ds-bg-accent-2: #d9f3ef;
+  --ds-surface: #ffffff;
+  --ds-surface-2: #eef0f7;
+  --ds-surface-3: #e2e5f0;
+  --ds-surface-glass: rgb(255 255 255 / 0.78);
+  --ds-overlay: rgb(14 16 32 / 0.55);
+
+  --ds-text: #10121c;
+  --ds-text-muted: #3a3f52;
+  --ds-text-inverse: #ffffff;
+
+  --ds-border: #c9cddc;
+  --ds-border-strong: #5f6479;
+
+  --ds-primary: #3525a8;
+  --ds-primary-hover: #281a8a;
+  --ds-on-primary: #ffffff;
+  --ds-primary-soft: #e8e5ff;
+  --ds-on-primary-soft: #241784;
+
+  --ds-accent: #08504b;
+  --ds-accent-soft: #d6f2ee;
+
+  --ds-success: #0a5530;
+  --ds-success-soft: #dcf3e5;
+  --ds-warning: #633a00;
+  --ds-warning-soft: #fdf0d8;
+  --ds-danger: #96101c;
+  --ds-danger-soft: #fde3e5;
+  --ds-on-danger: #ffffff;
+  --ds-info: #0a4670;
+  --ds-info-soft: #dcedf9;
+  --ds-neutral: #3a3f52;
+  --ds-neutral-soft: #e7e9f1;
+
+  --ds-focus: #1d1270;
+  --ds-focus-halo: #ffd84d;
+
+  --ds-gradient-brand: linear-gradient(135deg, #2a1c96 0%, #3525a8 45%, #0b5a54 100%);
+  --ds-shadow-sm: 0 1px 2px rgb(16 18 28 / 0.06), 0 1px 3px rgb(16 18 28 / 0.08);
+  --ds-shadow-md: 0 4px 12px rgb(16 18 28 / 0.08), 0 2px 4px rgb(16 18 28 / 0.06);
+  --ds-shadow-lg: 0 18px 40px rgb(30 22 120 / 0.14), 0 4px 10px rgb(16 18 28 / 0.08);
+}
+
+@mixin dark-tokens {
+  color-scheme: dark;
+
+  --ds-bg: #0b0d18;
+  --ds-bg-accent-1: #1c1650;
+  --ds-bg-accent-2: #0c2f2c;
+  --ds-surface: #141726;
+  --ds-surface-2: #1c2033;
+  --ds-surface-3: #262b42;
+  --ds-surface-glass: rgb(20 23 38 / 0.8);
+  --ds-overlay: rgb(0 0 0 / 0.7);
+
+  --ds-text: #f4f5fb;
+  --ds-text-muted: #c6cadb;
+  --ds-text-inverse: #0b0d18;
+
+  --ds-border: #343a55;
+  --ds-border-strong: #9298b2;
+
+  --ds-primary: #bdb6ff;
+  --ds-primary-hover: #d6d1ff;
+  --ds-on-primary: #0b0d18;
+  --ds-primary-soft: #272062;
+  --ds-on-primary-soft: #e3e0ff;
+
+  --ds-accent: #7fe0d4;
+  --ds-accent-soft: #10332f;
+
+  --ds-success: #8ae6b0;
+  --ds-success-soft: #10301f;
+  --ds-warning: #ffd28a;
+  --ds-warning-soft: #33250c;
+  --ds-danger: #ffadb2;
+  --ds-danger-soft: #3a1418;
+  --ds-on-danger: #0b0d18;
+  --ds-info: #9bd8ff;
+  --ds-info-soft: #0e2a40;
+  --ds-neutral: #c6cadb;
+  --ds-neutral-soft: #262b42;
+
+  --ds-focus: #ffd84d;
+  --ds-focus-halo: #0b0d18;
+
+  --ds-gradient-brand: linear-gradient(135deg, #1f1870 0%, #2a2190 45%, #0b4a45 100%);
+  --ds-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ds-shadow-md: 0 6px 16px rgb(0 0 0 / 0.45);
+  --ds-shadow-lg: 0 20px 48px rgb(0 0 0 / 0.55);
+}
+
+@mixin scale-tokens {
+  --ds-font-sans:
+    'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    sans-serif;
+  --ds-font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  --ds-text-scale: 1;
+  --ds-fs-xs: calc(0.8125rem * var(--ds-text-scale));
+  --ds-fs-sm: calc(0.9375rem * var(--ds-text-scale));
+  --ds-fs-md: calc(1rem * var(--ds-text-scale));
+  --ds-fs-lg: calc(1.125rem * var(--ds-text-scale));
+  --ds-fs-xl: calc(1.375rem * var(--ds-text-scale));
+  --ds-fs-2xl: calc(clamp(1.5rem, 1.2rem + 1.2vw, 2rem) * var(--ds-text-scale));
+  --ds-fs-3xl: calc(clamp(1.875rem, 1.4rem + 2vw, 2.75rem) * var(--ds-text-scale));
+
+  --ds-lh-body: 1.6;
+  --ds-lh-tight: 1.25;
+
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.5rem;
+  --ds-space-6: 2rem;
+  --ds-space-7: 3rem;
+  --ds-space-8: 4rem;
+
+  --ds-radius-sm: 8px;
+  --ds-radius-md: 12px;
+  --ds-radius-lg: 18px;
+  --ds-radius-xl: 28px;
+  --ds-radius-pill: 999px;
+
+  // WCAG 2.5.5 (AAA): pointer targets are at least 44 × 44 CSS px.
+  --ds-target: 44px;
+
+  --ds-duration: 180ms;
+  --ds-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --ds-header-h: 64px;
+  --ds-content-max: 1280px;
+}
