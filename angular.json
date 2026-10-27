@@ -69,7 +69,10 @@
               "buildTarget": "web:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "projects/web/proxy.conf.mjs"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

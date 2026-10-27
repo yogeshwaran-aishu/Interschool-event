@@ -1,17 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { Store } from '../../core/store';
+import { httpTestingProviders, respond, settle, testDb, testUser } from '../../core/test-support';
 import Login from './login';
 
 describe('Login', () => {
   beforeEach(async () => {
-    localStorage.clear();
-    sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [Login],
-      providers: [provideRouter([{ path: '**', children: [] }])],
+      providers: [provideRouter([{ path: '**', children: [] }]), ...httpTestingProviders()],
     }).compileComponents();
-    TestBed.inject(Store).reset();
   });
 
   function setup() {
@@ -48,6 +45,9 @@ describe('Login', () => {
     demo.click();
     await fixture.whenStable();
     el.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    await respond('/api/v1/auth/login', { accessToken: 't', user: testUser() });
+    await respond('/api/v1/state', testDb({ users: [testUser()] }));
+    await settle();
     await fixture.whenStable();
     expect(navigate).toHaveBeenCalledWith('/dashboard');
   });
@@ -62,6 +62,12 @@ describe('Login', () => {
     password.value = 'nope';
     password.dispatchEvent(new Event('input'));
     el.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    await respond(
+      '/api/v1/auth/login',
+      { error: { code: 'INVALID_CREDENTIALS', message: 'That email and password do not match.' } },
+      { status: 401 },
+    );
+    await settle();
     await fixture.whenStable();
     expect(el.querySelector('[role="alert"]')?.textContent).toContain('do not match');
   });

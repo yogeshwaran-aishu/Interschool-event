@@ -1,10 +1,8 @@
 import {
-  DomainError,
   EVENT_TRANSITIONS,
   HOST_DECISION_TRANSITIONS,
   INVITATION_TRANSITIONS,
   SCHOOL_DECISION_TRANSITIONS,
-  assertTransition,
   canTransition,
 } from './state-machines';
 
@@ -36,12 +34,5 @@ describe('state machines', () => {
   it('requires a nomination to be submitted before the host can decide', () => {
     expect(canTransition(HOST_DECISION_TRANSITIONS, 'not_submitted', 'confirmed')).toBe(false);
     expect(canTransition(HOST_DECISION_TRANSITIONS, 'pending', 'confirmed')).toBe(true);
-  });
-
-  it('throws a DomainError for a disallowed transition', () => {
-    expect(() => assertTransition(EVENT_TRANSITIONS, 'cancelled', 'open', 'event')).toThrow(
-      DomainError,
-    );
-    expect(() => assertTransition(EVENT_TRANSITIONS, 'draft', 'open', 'event')).not.toThrow();
   });
 });

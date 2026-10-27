@@ -63,6 +63,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Workspace has two projects: `projects/design-system` (`@isc/design-system`, imported from source via the tsconfig path) and `projects/web` (the app).
 - Visual styles belong in the design system (`projects/design-system/src/styles`), not in app components. Use `--ds-*` tokens; never hard-code colours. Run `npm run tokens:check` after changing a token.
 - Target WCAG 2.2 AAA: 7:1 text contrast, 44 px targets, visible focus, no timed content. `npm run e2e` runs axe with `wcag2aaa` tags on desktop, tablet and phone.
-- All writes go through `DomainService` (`projects/web/src/app/core/domain.ts`), which enforces roles, school scope, deadlines, quotas and the state machines in `state-machines.ts`. Components must not mutate `Store` directly.
+- Workspace also has `server/`: the Node.js + PostgreSQL API (Express 5, `pg`, zod). Business rules (roles, school scope, deadlines, quotas, state machines) live in its services; routes stay thin. Add schema changes as new files in `server/migrations/`.
+- In the app, all writes go through `DomainService` (`projects/web/src/app/core/domain.ts`), which calls the API and reloads `Store` from `GET /api/v1/state`. Components must not mutate `Store` directly.
 - Every page has one `<h1 data-page-heading tabindex="-1">` (or `ds-page-header`) so focus can move there after navigation.
-- Tests: `npm test` (Vitest), `npm run e2e` (Playwright). Use the Angular CLI MCP server (`.mcp.json`) for docs and best practices.
+- Tests: `npm test` (Vitest, app), `npm run test:api` (Vitest + Supertest, real PostgreSQL), `npm run e2e` (Playwright against the API). Local stack: `npm run db`, `npm run api`, `npm start`. Use the Angular CLI MCP server (`.mcp.json`) for docs and best practices.

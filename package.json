@@ -4,10 +4,13 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve web",
+    "api": "npm --prefix server run dev",
+    "db": "npm --prefix server run db:local",
     "build": "ng build design-system && ng build web",
     "build:ds": "ng build design-system",
     "watch": "ng build web --watch --configuration development",
     "test": "ng test web --watch=false && ng test design-system --watch=false",
+    "test:api": "npm --prefix server test",
     "test:watch": "ng test web",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",

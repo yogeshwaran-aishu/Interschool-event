@@ -90,15 +90,15 @@ export default class ApprovalDetail {
   protected readonly coordOpen = signal(false);
   protected readonly selectedCoords = signal<string[]>([]);
 
-  protected decide(registrationId: string, approve: boolean, name: string): void {
-    this.run(
+  protected async decide(registrationId: string, approve: boolean, name: string): Promise<void> {
+    await this.run(
       () => this.domain.decideApplication(registrationId, approve),
       approve ? `${name} approved` : `${name} not approved`,
     );
   }
 
-  protected submit(): void {
-    const ok = this.run(
+  protected async submit(): Promise<void> {
+    const ok = await this.run(
       () => this.domain.submitNominations(this.invitationId()),
       (n) => `${n} nomination(s) sent to the host`,
       'The host will confirm each one. Students are notified of the result.',
@@ -115,8 +115,8 @@ export default class ApprovalDetail {
     this.selectedCoords.update((ids) => (checked ? [...ids, id] : ids.filter((x) => x !== id)));
   }
 
-  protected saveCoordinators(): void {
-    const ok = this.run(
+  protected async saveCoordinators(): Promise<void> {
+    const ok = await this.run(
       () => this.domain.assignInvitationCoordinators(this.invitationId(), this.selectedCoords()),
       'Reviewers updated',
     );

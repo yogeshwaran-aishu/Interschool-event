@@ -1,254 +1,144 @@
+import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Auth } from './auth';
-import { Clock } from './clock';
-import { DomainService, EventDraft } from './domain';
-import { DEMO_PASSWORD } from './seed';
+import { DomainService } from './domain';
+import { Category, Db, Invitation, Nomination, Registration, SchoolEvent } from './models';
 import { DomainError } from './state-machines';
-import { Store } from './store';
+import { httpTestingProviders, respond, testDb, testUser } from './test-support';
 
-class FakeClock {
-  current = new Date('2026-10-26T10:00:00Z');
-  now(): Date {
-    return new Date(this.current);
-  }
-  advanceDays(days: number): void {
-    this.current = new Date(this.current.getTime() + days * 86_400_000);
-  }
-}
+const event: SchoolEvent = {
+  id: 'ev-1',
+  hostSchoolId: 's-1',
+  title: 'Science Fiesta',
+  description: '',
+  venue: 'Hall',
+  startsAt: '2030-01-20T09:00:00.000Z',
+  regDeadline: '2030-01-10T18:00:00.000Z',
+  status: 'open',
+  coordinatorIds: [],
+  createdBy: 'u-1',
+};
+const category: Category = {
+  id: 'cat-1',
+  eventId: 'ev-1',
+  name: 'Quiz',
+  minClass: 6,
+  maxClass: 10,
+  genderRule: 'any',
+  type: 'solo',
+  teamSize: 1,
+  maxPerSchool: 2,
+};
+const invitation: Invitation = {
+  id: 'inv-1',
+  eventId: 'ev-1',
+  guestSchoolId: 's-2',
+  status: 'accepted',
+  coordinatorIds: [],
+};
+const reg = (id: string, hostStatus: Registration['hostStatus']): Registration => ({
+  id,
+  invitationId: 'inv-1',
+  categoryId: 'cat-1',
+  studentId: `stu-${id}`,
+  schoolStatus: 'approved',
+  hostStatus,
+  appliedAt: '2030-01-01T00:00:00.000Z',
+});
+const nomination: Nomination = {
+  registrationId: 'r-1',
+  eventId: 'ev-1',
+  invitationId: 'inv-1',
+  studentName: 'Aarav Mehta',
+  className: 9,
+  schoolName: 'Lakeview Vidyalaya',
+  categoryName: 'Quiz',
+  hostStatus: 'pending',
+};
 
 describe('DomainService', () => {
-  let clock: FakeClock;
   let domain: DomainService;
-  let auth: Auth;
-  let store: Store;
+  let http: HttpTestingController;
 
-  const as = (email: string) => {
-    auth.logout();
-    const result = auth.login(email, DEMO_PASSWORD);
-    if (!result.ok) throw new Error(result.message);
-  };
+  async function signIn(db: Partial<Db>, user = testUser()) {
+    const login = TestBed.inject(Auth).login(user.email, 'demo1234');
+    await respond('/api/v1/auth/login', { accessToken: 't', user });
+    await respond('/api/v1/state', testDb({ users: [user], ...db }));
+    await login;
+  }
 
   beforeEach(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-    clock = new FakeClock();
-    TestBed.configureTestingModule({ providers: [{ provide: Clock, useValue: clock }] });
-    store = TestBed.inject(Store);
-    store.reset();
+    TestBed.configureTestingModule({ providers: httpTestingProviders() });
     domain = TestBed.inject(DomainService);
-    auth = TestBed.inject(Auth);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  describe('end-to-end flow', () => {
-    it('runs invite → accept → apply → approve → submit → confirm', () => {
-      as('principal@sunrise.test');
-      expect(domain.inviteSchools('ev-fiesta', ['sch-greenfield'])).toBe(1);
+  afterEach(() => http.verify());
 
-      as('principal@greenfield.test');
-      const inv = domain.receivedInvitations().find((i) => i.eventId === 'ev-fiesta')!;
-      domain.respondToInvitation(inv.id, true, 'See you there');
-      expect(domain.db.invitations.find((i) => i.id === inv.id)!.status).toBe('accepted');
+  it('sends each write to its API action route, then reloads the state', async () => {
+    await signIn({ events: [event] });
+    const done = domain.publishEvent('ev-1');
+    const req = await respond('/api/v1/events/ev-1/publish', { ...event, status: 'open' });
+    expect(req.method).toBe('POST');
+    await respond('/api/v1/state', testDb({ users: [testUser()], events: [{ ...event }] }));
+    await done;
+  });
 
-      // Lakeview already accepted in the seed; Aarav (class 9) applies.
-      as('aarav@lakeview.test');
-      expect(domain.openEventsForStudent().map((e) => e.event.id)).toContain('ev-fiesta');
-      domain.apply('ev-fiesta', 'cat-poster');
-      const reg = domain.myRegistrations().find((r) => r.categoryId === 'cat-poster')!;
-      expect(reg.schoolStatus).toBe('applied');
-
-      as('teacher@lakeview.test');
-      domain.decideApplication(reg.id, true);
-      expect(domain.submitNominations('inv-fiesta-lake')).toBe(2); // Aarav + seeded Kabir
-
-      as('coordinator@sunrise.test');
-      const nomination = domain
-        .hostNominations('ev-fiesta')
-        .find((n) => n.registrationId === reg.id)!;
-      expect(nomination).toMatchObject({
-        studentName: 'Aarav Mehta',
-        className: 9,
-        schoolName: 'Lakeview Vidyalaya',
-      });
-      domain.decideNomination(reg.id, true);
-      expect(domain.db.registrations.find((r) => r.id === reg.id)!.hostStatus).toBe('confirmed');
-
-      const studentNotes = domain.db.notifications
-        .filter((n) => n.userId === 'u-aarav')
-        .map((n) => n.type);
-      expect(studentNotes).toEqual(
-        expect.arrayContaining(['application_approved', 'nomination_confirmed']),
-      );
+  it('turns an API refusal into a DomainError with the server’s message, and still reloads', async () => {
+    await signIn({});
+    const done = domain.decideApplication('r-9', true);
+    await respond(
+      '/api/v1/registrations/r-9/school-approve',
+      { error: { code: 'QUOTA_FULL', message: 'Quota reached: Quiz allows 2 per school.' } },
+      { status: 409 },
+    );
+    await respond('/api/v1/state', testDb({ users: [testUser()] }));
+    await expect(done).rejects.toMatchObject({
+      constructor: DomainError,
+      code: 'QUOTA_FULL',
+      message: 'Quota reached: Quiz allows 2 per school.',
     });
   });
 
-  describe('quota (RG-3)', () => {
-    it('never lets approvals exceed the per-school limit', () => {
-      // cat-quiz allows 2 per school; Kabir is already approved.
-      as('aarav@lakeview.test');
-      domain.apply('ev-fiesta', 'cat-quiz');
-      as('ishita@lakeview.test');
-      domain.apply('ev-fiesta', 'cat-quiz');
-
-      as('principal@lakeview.test');
-      const [first, second] = domain.db.registrations.filter(
-        (r) => r.categoryId === 'cat-quiz' && r.schoolStatus === 'applied',
-      );
-      domain.decideApplication(first.id, true);
-      expect(() => domain.decideApplication(second.id, true)).toThrow(/Quota reached/);
-      expect(domain.approvedCount('inv-fiesta-lake', 'cat-quiz')).toBe(2);
-    });
+  it('asks for a reason before calling the API to cancel', async () => {
+    await signIn({});
+    await expect(domain.cancelEvent('ev-1', '  ')).rejects.toThrow(/Give a reason/);
   });
 
-  describe('deadlines (IN-3, RG-4)', () => {
-    it('expires unanswered invitations and locks the list after the deadline', () => {
-      clock.advanceDays(11);
-      domain.sweepDeadlines();
-      expect(domain.event('ev-fiesta')!.status).toBe('closed');
-      expect(domain.db.invitations.find((i) => i.id === 'inv-fiesta-aur')!.status).toBe('expired');
-
-      as('teacher@lakeview.test');
-      expect(() => domain.decideApplication('reg-2', true)).toThrow(/locked/);
-
-      as('aarav@lakeview.test');
-      expect(() => domain.apply('ev-fiesta', 'cat-poster')).toThrow(DomainError);
+  it('shows the host only nominations for events it hosts', async () => {
+    await signIn({
+      events: [event],
+      nominations: [nomination, { ...nomination, eventId: 'other' }],
     });
+    expect(domain.hostNominations('ev-1')).toEqual([nomination]);
+    expect(domain.hostNominations('other')).toEqual([]);
   });
 
-  describe('eligibility (RG-1)', () => {
-    it('hides and refuses categories a student is not eligible for', () => {
-      as('meera@lakeview.test'); // class 8: robotics (8–12) and quiz (6–10) fit, poster (9–12) does not
-      const fiesta = domain.openEventsForStudent().find((e) => e.event.id === 'ev-fiesta')!;
-      expect(fiesta.categories.map((c) => c.id).sort()).toEqual(['cat-quiz', 'cat-robotics']);
-      expect(() => domain.apply('ev-fiesta', 'cat-poster')).toThrow(/eligibility/);
-    });
-
-    it('does not show events from invitations the school has not accepted', () => {
-      as('tara@sunrise.test'); // Sunrise has not answered the debate invitation
-      expect(domain.openEventsForStudent()).toEqual([]);
-      expect(() => domain.apply('ev-debate', 'cat-debate-sr')).toThrow(/not accepted/);
-    });
+  it('counts approvals against the quota, leaving out host-rejected ones', async () => {
+    await signIn(
+      {
+        events: [event],
+        categories: [category],
+        invitations: [invitation],
+        registrations: [reg('a', 'not_submitted'), reg('b', 'confirmed'), reg('c', 'rejected')],
+      },
+      testUser({ schoolId: 's-2' }),
+    );
+    expect(domain.approvedCount('inv-1', 'cat-1')).toBe(2);
   });
 
-  describe('withdrawal (RG-6)', () => {
-    it('lets a student withdraw and re-apply before the deadline', () => {
-      as('ishita@lakeview.test');
-      domain.withdraw('reg-2');
-      expect(domain.db.registrations.find((r) => r.id === 'reg-2')!.schoolStatus).toBe('withdrawn');
-      domain.apply('ev-fiesta', 'cat-poster');
-      expect(domain.db.registrations.find((r) => r.id === 'reg-2')!.schoolStatus).toBe('applied');
+  it('uploads the CSV and waits for the import job', async () => {
+    await signIn({});
+    const done = domain.importPeople('role,name,email\nteacher,A,a@x.test');
+    const upload = await respond('/api/v1/school/users/import', { jobId: 'job-1' });
+    expect(upload.body).toEqual({ csv: 'role,name,email\nteacher,A,a@x.test' });
+    await respond('/api/v1/school/imports/job-1', {
+      jobId: 'job-1',
+      status: 'done',
+      result: { created: 1, errors: [] },
+      error: null,
     });
-  });
-
-  describe('tenant isolation and roles', () => {
-    it('stops a school from acting on another school’s records', () => {
-      as('principal@lakeview.test');
-      expect(() => domain.inviteSchools('ev-fiesta', ['sch-greenfield'])).toThrow(/host school/);
-      expect(() => domain.decideNomination('reg-1', true)).toThrow(DomainError);
-      expect(domain.hostNominations('ev-fiesta')).toEqual([]);
-
-      as('principal@sunrise.test');
-      expect(() => domain.decideApplication('reg-2', true)).toThrow(/your school/);
-      expect(() => domain.respondToInvitation('inv-fiesta-aur', true, '')).toThrow(/not found/);
-    });
-
-    it('limits platform actions to the App Admin', () => {
-      as('principal@sunrise.test');
-      expect(() => domain.setSchoolStatus('sch-lakeview', 'suspended')).toThrow(/permission/);
-    });
-
-    it('stops a teacher without hosting rights from creating events', () => {
-      as('teacher@lakeview.test');
-      expect(domain.canHostEvents()).toBe(false);
-      expect(() => domain.createEvent(draft(), true)).toThrow(/permission/);
-    });
-
-    it('never invites the host itself, suspended schools or the same school twice', () => {
-      as('principal@sunrise.test');
-      expect(
-        domain.inviteSchools('ev-fiesta', ['sch-sunrise', 'sch-oakridge', 'sch-lakeview']),
-      ).toBe(0);
-    });
-  });
-
-  describe('events (EV-1, EV-4, EV-5)', () => {
-    it('validates the deadline is before the start', () => {
-      as('principal@sunrise.test');
-      expect(() =>
-        domain.createEvent({ ...draft(), regDeadline: '2026-12-02T00:00:00Z' }, true),
-      ).toThrow(/deadline/);
-    });
-
-    it('notifies accepted schools and applicants when the venue changes', () => {
-      as('principal@sunrise.test');
-      const event = domain.event('ev-fiesta')!;
-      const categories = domain
-        .categoriesOf('ev-fiesta')
-        .map(({ id: _id, eventId: _e, ...c }) => c);
-      domain.updateEvent('ev-fiesta', { ...event, venue: 'New Hall', categories });
-      const recipients = domain.db.notifications
-        .filter((n) => n.type === 'event_changed')
-        .map((n) => n.userId);
-      expect(recipients).toEqual(
-        expect.arrayContaining(['u-lake-admin', 'u-kabir', 'u-ishita', 'u-rohan']),
-      );
-    });
-
-    it('requires a reason to cancel and records it in the audit log', () => {
-      as('principal@sunrise.test');
-      expect(() => domain.cancelEvent('ev-fiesta', '  ')).toThrow(/reason/);
-      domain.cancelEvent('ev-fiesta', 'Venue flooded');
-      expect(domain.event('ev-fiesta')!.status).toBe('cancelled');
-      expect(domain.db.audit.at(-1)).toMatchObject({
-        action: 'event.cancelled',
-        actorId: 'u-sun-admin',
-      });
-      expect(() => domain.publishEvent('ev-fiesta')).toThrow(DomainError);
-    });
-  });
-
-  describe('onboarding (ON-1)', () => {
-    it('creates a school with an invited admin who must set a password', () => {
-      as('admin@interschool.test');
-      const school = domain.createSchool({
-        name: 'Hilltop School',
-        board: 'CBSE',
-        city: 'Pune',
-        address: '1 Hill Rd',
-        contactEmail: 'office@hilltop.test',
-        contactPhone: '123',
-        adminName: 'Hema',
-        adminEmail: 'Hema@Hilltop.test',
-      });
-      const admin = domain.db.users.find((u) => u.schoolId === school.id)!;
-      expect(admin).toMatchObject({
-        role: 'school_admin',
-        email: 'hema@hilltop.test',
-        mustChangePassword: true,
-      });
-      expect(
-        domain.db.notifications.some((n) => n.userId === admin.id && n.channels.includes('email')),
-      ).toBe(true);
-    });
+    await respond('/api/v1/state', testDb({ users: [testUser()] }));
+    expect(await done).toEqual({ created: 1, errors: [] });
   });
 });
-
-function draft(): EventDraft {
-  return {
-    title: 'Chess Open',
-    description: '',
-    venue: 'Hall',
-    startsAt: '2026-12-01T09:00:00Z',
-    regDeadline: '2026-11-20T18:00:00Z',
-    categories: [
-      {
-        name: 'Under 14',
-        minClass: 6,
-        maxClass: 8,
-        genderRule: 'any',
-        type: 'solo',
-        teamSize: 1,
-        maxPerSchool: 3,
-      },
-    ],
-  };
-}

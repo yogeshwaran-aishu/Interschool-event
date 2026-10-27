@@ -70,11 +70,7 @@ export default class Schools {
   });
 
   protected counts(schoolId: string): { users: number; events: number } {
-    const db = this.domain.db;
-    return {
-      users: db.users.filter((u) => u.schoolId === schoolId).length,
-      events: db.events.filter((e) => e.hostSchoolId === schoolId).length,
-    };
+    return this.domain.db.platform?.perSchool[schoolId] ?? { users: 0, events: 0 };
   }
 
   protected errorOf(field: keyof NewSchool): string | null {
@@ -91,7 +87,7 @@ export default class Schools {
   protected async create(event: Event): Promise<void> {
     event.preventDefault();
     await submit(this.form, async () => {
-      const ok = this.run(
+      const ok = await this.run(
         () => this.domain.createSchool(this.model()),
         (s) => `${s.name} onboarded`,
         `An invitation email to set a password was queued for ${this.model().adminEmail}.`,
@@ -100,14 +96,14 @@ export default class Schools {
     });
   }
 
-  protected toggleStatus(): void {
+  protected async toggleStatus(): Promise<void> {
     const school = this.confirmTarget();
     if (!school) return;
     const next = school.status === 'active' ? 'suspended' : 'active';
-    this.run(
+    this.confirmTarget.set(null);
+    await this.run(
       () => this.domain.setSchoolStatus(school.id, next),
       `${school.name} ${next === 'active' ? 'reactivated' : 'suspended'}`,
     );
-    this.confirmTarget.set(null);
   }
 }

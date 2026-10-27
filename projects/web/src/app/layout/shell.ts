@@ -54,18 +54,26 @@ export default class Shell {
   protected readonly drawerOpen = signal(false);
   protected readonly prefsOpen = signal(false);
 
-  protected signOut(): void {
-    this.auth.logout();
+  protected async signOut(): Promise<void> {
+    await this.auth.logout();
     this.toast.clear();
-    this.router.navigateByUrl('/login');
+    await this.router.navigateByUrl('/login');
   }
 
-  protected resetDemo(): void {
-    this.store.reset();
+  /** Development only: the API re-seeds the database, which also ends every session. */
+  protected async resetDemo(): Promise<void> {
     this.prefsOpen.set(false);
+    try {
+      await this.store.resetDemo();
+    } catch {
+      this.toast.error('Could not reset', 'Demo reset is turned off on this server.');
+      return;
+    }
+    await this.auth.logout();
+    await this.router.navigateByUrl('/login');
     this.toast.success(
       'Demo data reset',
-      'All schools, events and applications are back to their starting state.',
+      'All schools, events and applications are back to their starting state. Sign in again.',
     );
   }
 }

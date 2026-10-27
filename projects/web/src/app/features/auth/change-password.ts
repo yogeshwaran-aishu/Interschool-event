@@ -113,7 +113,7 @@ export default class ChangePassword {
     event.preventDefault();
     await submit(this.form, async () => {
       const { current, next } = this.model();
-      const problem = this.auth.changePassword(current, next);
+      const problem = await this.auth.changePassword(current, next);
       if (problem) {
         this.error.set(problem);
         return;
@@ -123,8 +123,8 @@ export default class ChangePassword {
     });
   }
 
-  protected signOut(): void {
-    this.auth.logout();
-    this.router.navigateByUrl('/login');
+  protected async signOut(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/login');
   }
 }

@@ -1,55 +1,107 @@
+import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Session } from './api';
 import { Auth } from './auth';
-import { DomainService } from './domain';
-import { DEMO_PASSWORD } from './seed';
 import { Store } from './store';
+import { httpTestingProviders, respond, testDb, testUser } from './test-support';
 
 describe('Auth', () => {
   let auth: Auth;
-  let store: Store;
+  let http: HttpTestingController;
+  const school = {
+    id: 's-1',
+    name: 'Sunrise Public School',
+    board: 'CBSE',
+    city: 'Pune',
+    address: '',
+    contactEmail: '',
+    contactPhone: '',
+    status: 'active' as const,
+  };
 
   beforeEach(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-    store = TestBed.inject(Store);
-    store.reset();
+    TestBed.configureTestingModule({ providers: httpTestingProviders() });
     auth = TestBed.inject(Auth);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('signs in with matching credentials, case-insensitive email', () => {
-    const result = auth.login('  Principal@Sunrise.test ', DEMO_PASSWORD);
-    expect(result.ok).toBe(true);
-    expect(auth.user()?.id).toBe('u-sun-admin');
+  afterEach(() => http.verify());
+
+  it('signs in through the API, normalising the email, then loads the state', async () => {
+    const result = auth.login('  Principal@Sunrise.test ', 'demo1234');
+    const req = await respond('/api/v1/auth/login', { accessToken: 'tok', user: testUser() });
+    expect(req.body).toEqual({ loginId: 'principal@sunrise.test', password: 'demo1234' });
+    const state = await respond(
+      '/api/v1/state',
+      testDb({ users: [testUser()], schools: [school] }),
+    );
+    expect(state.headers.get('Authorization')).toBe('Bearer tok');
+    expect(await result).toMatchObject({ ok: true });
+    expect(auth.user()?.id).toBe('u-1');
     expect(auth.school()?.name).toBe('Sunrise Public School');
   });
 
-  it('gives the same message for unknown email and wrong password', () => {
-    const a = auth.login('nobody@x.test', DEMO_PASSWORD);
-    const b = auth.login('principal@sunrise.test', 'wrong');
-    expect(a.ok || b.ok).toBe(false);
-    expect(!a.ok && !b.ok && a.message === b.message).toBe(true);
+  it('shows the server’s message when sign-in is refused', async () => {
+    const result = auth.login('principal@sunrise.test', 'wrong');
+    await respond(
+      '/api/v1/auth/login',
+      { error: { code: 'INVALID_CREDENTIALS', message: 'That email and password do not match.' } },
+      { status: 401 },
+    );
+    expect(await result).toEqual({ ok: false, message: 'That email and password do not match.' });
+    expect(auth.user()).toBeNull();
   });
 
-  it('blocks users of a suspended school', () => {
-    auth.login('admin@interschool.test', DEMO_PASSWORD);
-    TestBed.inject(DomainService).setSchoolStatus('sch-lakeview', 'suspended');
-    auth.logout();
-    const result = auth.login('aarav@lakeview.test', DEMO_PASSWORD);
-    expect(result.ok).toBe(false);
+  it('resumes a session from the refresh cookie on start', async () => {
+    const restore = auth.restore();
+    await respond('/api/v1/auth/refresh', { accessToken: 'tok2', user: testUser() });
+    await respond('/api/v1/state', testDb({ users: [testUser()] }));
+    await restore;
+    expect(auth.user()?.name).toBe('Anita Deshmukh');
+    expect(TestBed.inject(Session).accessToken()).toBe('tok2');
   });
 
-  it('blocks students without recorded guardian consent', () => {
-    store.update((db) => (db.students.find((s) => s.userId === 'u-aarav')!.consent = false));
-    const result = auth.login('aarav@lakeview.test', DEMO_PASSWORD);
-    expect(result).toMatchObject({ ok: false, message: expect.stringContaining('consent') });
+  it('stays signed out when there is no session to resume', async () => {
+    const restore = auth.restore();
+    await respond('/api/v1/auth/refresh', { error: { code: 'UNAUTHENTICATED' } }, { status: 401 });
+    await restore;
+    expect(auth.user()).toBeNull();
   });
 
-  it('forces and completes a first-login password change', () => {
-    auth.login('meera@lakeview.test', DEMO_PASSWORD);
-    expect(auth.user()?.mustChangePassword).toBe(true);
-    expect(auth.changePassword('wrong', 'new-password-1')).toMatch(/not correct/);
-    expect(auth.changePassword(DEMO_PASSWORD, 'short')).toMatch(/8 characters/);
-    expect(auth.changePassword(DEMO_PASSWORD, 'new-password-1')).toBeNull();
+  it('checks a new password locally, then lets the server verify the current one', async () => {
+    const login = auth.login('meera@lakeview.test', 'demo1234');
+    await respond('/api/v1/auth/login', {
+      accessToken: 't',
+      user: testUser({ mustChangePassword: true }),
+    });
+    await respond('/api/v1/state', testDb());
+    await login;
+
+    expect(await auth.changePassword('demo1234', 'short')).toMatch(/8 characters/);
+    const wrong = auth.changePassword('wrong', 'new-password-1');
+    await respond(
+      '/api/v1/auth/change-password',
+      { error: { code: 'VALIDATION_FAILED', message: 'Your current password is not correct.' } },
+      { status: 400 },
+    );
+    expect(await wrong).toMatch(/not correct/);
+
+    const ok = auth.changePassword('demo1234', 'new-password-1');
+    await respond('/api/v1/auth/change-password', testUser({ mustChangePassword: false }));
+    await respond('/api/v1/state', testDb());
+    expect(await ok).toBeNull();
     expect(auth.user()?.mustChangePassword).toBe(false);
+  });
+
+  it('clears the session and cached data on sign-out', async () => {
+    const login = auth.login('principal@sunrise.test', 'demo1234');
+    await respond('/api/v1/auth/login', { accessToken: 't', user: testUser() });
+    await respond('/api/v1/state', testDb({ users: [testUser()] }));
+    await login;
+    const logout = auth.logout();
+    await respond('/api/v1/auth/logout', null);
+    await logout;
+    expect(auth.user()).toBeNull();
+    expect(TestBed.inject(Store).db().users).toEqual([]);
   });
 });

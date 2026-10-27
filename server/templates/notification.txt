@@ -1,0 +1,8 @@
+Subject: {{title}}
+Hello {{name}},
+
+{{body}}
+
+Open InterSchool Connect to see the details: {{appUrl}}{{link}}
+
+You receive this email because of your role at your school on InterSchool Connect.

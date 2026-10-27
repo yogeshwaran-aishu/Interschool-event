@@ -3,7 +3,7 @@ import { FormField, email, form, required, submit } from '@angular/forms/signals
 import { ActivatedRoute, Router } from '@angular/router';
 import { DsButton, DsControl, DsField, DsIcon } from '@isc/design-system';
 import { Auth } from '../../core/auth';
-import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../core/seed';
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../core/demo-accounts';
 
 @Component({
   selector: 'app-login',
@@ -40,7 +40,7 @@ export default class Login {
     event.preventDefault();
     await submit(this.form, async () => {
       const { email, password } = this.model();
-      const result = this.auth.login(email, password);
+      const result = await this.auth.login(email, password);
       if (!result.ok) {
         this.error.set(result.message);
         return;

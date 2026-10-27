@@ -57,7 +57,7 @@ const PAGE = 25;
                 <td data-label="When">
                   <time [attr.datetime]="a.at">{{ a.at | date: 'd MMM y, h:mm a' }}</time>
                 </td>
-                <td data-label="Who">{{ actor(a.actorId) }}</td>
+                <td data-label="Who">{{ a.actorName }}</td>
                 <td data-label="Action">
                   <code>{{ a.action }}</code>
                 </td>
@@ -94,15 +94,11 @@ export default class AuditLog {
   protected readonly entries = computed(() => {
     const me = this.auth.user();
     const q = this.query().trim().toLowerCase();
+    // The API already scopes the log: every entry for the App Admin, own school otherwise.
     return this.domain.db.audit
       .filter((a) => this.isAppAdmin() || a.schoolId === me?.schoolId)
       .filter((a) => !q || a.action.includes(q) || a.entity.toLowerCase().includes(q))
       .sort((a, b) => b.at.localeCompare(a.at));
   });
   protected readonly visible = computed(() => this.entries().slice(0, this.limit()));
-
-  protected actor(id: string): string {
-    const user = this.domain.user(id);
-    return user ? user.name : 'System';
-  }
 }

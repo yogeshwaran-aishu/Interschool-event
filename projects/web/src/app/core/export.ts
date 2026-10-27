@@ -2,13 +2,17 @@ import { DOCUMENT } from '@angular/common';
 import { Service, inject } from '@angular/core';
 import { toCsv } from './csv';
 
-/** Browser-side file export: CSV download and a printable table for "Save as PDF". */
+/** Browser-side file saving: CSV download and a printable table for "Save as PDF". */
 @Service()
 export class Exporter {
   private readonly document = inject(DOCUMENT);
 
   downloadCsv(filename: string, rows: (string | number)[][]): void {
-    const blob = new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
+    this.saveBlob(filename, new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+  }
+
+  /** Saves a file the browser already holds, such as a CSV from the API. */
+  saveBlob(filename: string, blob: Blob): void {
     const url = URL.createObjectURL(blob);
     const a = this.document.createElement('a');
     a.href = url;

@@ -1,11 +1,10 @@
-import { expect, test } from '@playwright/test';
-import { USERS, signIn } from './support';
+import { IDS, expect, test, USERS, signIn } from './support';
 
 const PATHS = [
   '/dashboard',
   '/events',
-  '/events/ev-fiesta',
-  '/events/ev-fiesta/nominations',
+  `/events/${IDS.fiesta}`,
+  `/events/${IDS.fiesta}/nominations`,
   '/events/new',
   '/invitations',
   '/people',
@@ -56,7 +55,7 @@ test.describe('responsive layout', () => {
   });
 
   test('interactive targets are at least 44 × 44 px (WCAG 2.5.5 AAA)', async ({ page }) => {
-    for (const path of ['/dashboard', '/events/ev-fiesta', '/invitations']) {
+    for (const path of ['/dashboard', `/events/${IDS.fiesta}`, '/invitations']) {
       await page.goto(path);
       await expect(page.locator('[data-page-heading]')).toBeVisible();
       const small = await page.evaluate(() =>
@@ -96,7 +95,7 @@ test.describe('responsive layout', () => {
 
   test('tables reflow into labelled rows on phones', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'phone-only layout');
-    await page.goto('/events/ev-fiesta/invitations');
+    await page.goto(`/events/${IDS.fiesta}/invitations`);
     const cell = page.getByRole('cell', { name: 'Lakeview Vidyalaya', exact: true });
     await expect(cell).toBeVisible();
     const label = await cell.evaluate((td) => getComputedStyle(td, '::before').content);

@@ -1,8 +1,8 @@
 import { EventStatus, HostDecision, InvitationStatus, SchoolDecision } from './models';
 
 /**
- * Allowed status transitions. Every status change in the app goes through
- * `assertTransition`, so a record can never jump to a state the PRD does not allow.
+ * Allowed status transitions, mirrored from the API (server/src/common/state-machines.ts).
+ * The server enforces them; the UI uses them only to decide which actions to offer.
  */
 export const EVENT_TRANSITIONS: Record<EventStatus, readonly EventStatus[]> = {
   draft: ['open', 'cancelled'],
@@ -34,8 +34,13 @@ export const HOST_DECISION_TRANSITIONS: Record<HostDecision, readonly HostDecisi
   rejected: ['confirmed'],
 };
 
+/** A rule the server refused, with its message written for the person using the app. */
 export class DomainError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly code = 'RULE',
+    readonly status = 409,
+  ) {
     super(message);
     this.name = 'DomainError';
   }
@@ -47,15 +52,4 @@ export function canTransition<S extends string>(
   to: S,
 ): boolean {
   return table[from].includes(to);
-}
-
-export function assertTransition<S extends string>(
-  table: Record<S, readonly S[]>,
-  from: S,
-  to: S,
-  entity: string,
-): void {
-  if (!canTransition(table, from, to)) {
-    throw new DomainError(`A ${entity} cannot move from “${from}” to “${to}”.`);
-  }
 }

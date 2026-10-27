@@ -157,8 +157,8 @@ export default class Explore {
     }));
   });
 
-  protected apply(eventId: string, categoryId: string, name: string): void {
-    this.run(
+  protected async apply(eventId: string, categoryId: string, name: string): Promise<void> {
+    await this.run(
       () => this.domain.apply(eventId, categoryId),
       `Applied for ${name}`,
       'Your school will review your application. You’ll be notified of the decision.',

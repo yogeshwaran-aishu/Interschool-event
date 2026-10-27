@@ -63,6 +63,7 @@ export default class People {
   protected readonly importOpen = signal(false);
   protected readonly csvText = signal('');
   protected readonly fileName = signal<string | null>(null);
+  protected readonly importing = signal(false);
   protected readonly report = signal<{ valid: PersonImportRow[]; errors: ImportRowError[] } | null>(
     null,
   );
@@ -103,17 +104,19 @@ export default class People {
     this.report.set(validatePeopleCsv(this.csvText(), emails, admissions));
   }
 
-  protected importValid(): void {
-    const rows = this.report()?.valid ?? [];
-    if (!rows.length) return;
-    const errors = this.report()?.errors.length ?? 0;
-    const ok = this.run(
-      () => this.domain.importPeople(rows),
-      (n) => `${n} ${n === 1 ? 'person' : 'people'} imported`,
-      errors
-        ? `${errors} row(s) were skipped — fix them and import again.`
-        : 'Each person receives sign-in details and must change their password on first login.',
+  /** Uploads the file; the server checks every row again and creates the valid ones. */
+  protected async importValid(): Promise<void> {
+    if (!this.report()?.valid.length) return;
+    this.importing.set(true);
+    const ok = await this.run(
+      () => this.domain.importPeople(this.csvText()),
+      (r) => `${r?.created ?? 0} ${r?.created === 1 ? 'person' : 'people'} imported`,
+      (r) =>
+        r?.errors.length
+          ? `${r.errors.length} row(s) were skipped — fix them and import again.`
+          : 'Each person receives sign-in details and must change their password on first login.',
     );
+    this.importing.set(false);
     if (ok) this.importOpen.set(false);
   }
 
@@ -122,8 +125,8 @@ export default class People {
     this.exporter.downloadCsv('people-import-template.csv', rows);
   }
 
-  protected toggleHosting(teacherId: string, canHost: boolean): void {
-    this.run(
+  protected async toggleHosting(teacherId: string, canHost: boolean): Promise<void> {
+    await this.run(
       () => this.domain.setTeacherCanHost(teacherId, canHost),
       canHost ? 'Teacher can now create events' : 'Event creation turned off',
     );

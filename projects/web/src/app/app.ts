@@ -4,7 +4,6 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { DsPreferencesService, DsToaster } from '@isc/design-system';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DomainService } from './core/domain';
 
 @Component({
   selector: 'app-root',
@@ -23,7 +22,6 @@ export class App {
   constructor() {
     // Instantiating the service applies the saved theme before first paint of routed views.
     inject(DsPreferencesService);
-    inject(DomainService).sweepDeadlines();
 
     const injector = inject(Injector);
     inject(Router)

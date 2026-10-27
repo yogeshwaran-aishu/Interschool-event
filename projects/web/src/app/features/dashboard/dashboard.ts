@@ -23,16 +23,16 @@ export default class Dashboard {
   protected readonly firstName = computed(() => this.user()?.name.split(' ')[0] ?? '');
 
   // App admin sees counts only — never student personal data.
-  protected readonly platform = computed(() => {
-    const db = this.domain.db;
-    return {
-      activeSchools: db.schools.filter((s) => s.status === 'active').length,
-      suspendedSchools: db.schools.filter((s) => s.status === 'suspended').length,
-      liveEvents: db.events.filter((e) => e.status === 'open').length,
-      students: db.users.filter((u) => u.role === 'student').length,
-      registrations: db.registrations.filter((r) => r.schoolStatus !== 'withdrawn').length,
-    };
-  });
+  protected readonly platform = computed(
+    () =>
+      this.domain.db.platform ?? {
+        activeSchools: 0,
+        suspendedSchools: 0,
+        liveEvents: 0,
+        students: 0,
+        registrations: 0,
+      },
+  );
 
   protected readonly hosted = computed(() => this.domain.hostedEvents());
   protected readonly received = computed(() => this.domain.receivedInvitations());

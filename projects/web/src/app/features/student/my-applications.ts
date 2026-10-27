@@ -137,10 +137,10 @@ export default class MyApplications {
       .sort((a, b) => b.reg.appliedAt.localeCompare(a.reg.appliedAt)),
   );
 
-  protected withdraw(): void {
+  protected async withdraw(): Promise<void> {
     const target = this.withdrawing();
     if (!target) return;
-    this.run(() => this.domain.withdraw(target.id), 'Application withdrawn');
     this.withdrawing.set(null);
+    await this.run(() => this.domain.withdraw(target.id), 'Application withdrawn');
   }
 }

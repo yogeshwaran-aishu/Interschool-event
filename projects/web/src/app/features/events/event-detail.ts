@@ -128,8 +128,8 @@ export default class EventDetail {
     this.inviteOpen.set(true);
   }
 
-  protected sendInvites(): void {
-    const ok = this.run(
+  protected async sendInvites(): Promise<void> {
+    const ok = await this.run(
       () => this.domain.inviteSchools(this.id(), this.selectedSchools()),
       (n) => `${n} invitation(s) sent`,
       'School admins are notified in the app and by email.',
@@ -137,24 +137,27 @@ export default class EventDetail {
     if (ok) this.inviteOpen.set(false);
   }
 
-  protected revoke(invitationId: string, school: string): void {
-    this.run(() => this.domain.revokeInvitation(invitationId), `Invitation to ${school} revoked`);
+  protected async revoke(invitationId: string, school: string): Promise<void> {
+    await this.run(
+      () => this.domain.revokeInvitation(invitationId),
+      `Invitation to ${school} revoked`,
+    );
   }
 
-  protected publish(): void {
-    this.run(
+  protected async publish(): Promise<void> {
+    await this.run(
       () => this.domain.publishEvent(this.id()),
       'Event published',
       'You can now invite schools.',
     );
   }
 
-  protected confirmCancel(): void {
+  protected async confirmCancel(): Promise<void> {
     if (!this.cancelReason().trim()) {
       this.cancelError.set('Give a reason so schools and students understand why.');
       return;
     }
-    const ok = this.run(
+    const ok = await this.run(
       () => this.domain.cancelEvent(this.id(), this.cancelReason()),
       'Event cancelled',
       'Every school and applied student has been notified.',
@@ -167,16 +170,16 @@ export default class EventDetail {
     this.coordOpen.set(true);
   }
 
-  protected saveCoordinators(): void {
-    const ok = this.run(
+  protected async saveCoordinators(): Promise<void> {
+    const ok = await this.run(
       () => this.domain.assignEventCoordinators(this.id(), this.selectedCoords()),
       'Coordinators updated',
     );
     if (ok) this.coordOpen.set(false);
   }
 
-  protected decide(registrationId: string, confirm: boolean, name: string): void {
-    this.run(
+  protected async decide(registrationId: string, confirm: boolean, name: string): Promise<void> {
+    await this.run(
       () => this.domain.decideNomination(registrationId, confirm),
       confirm ? `${name} confirmed` : `${name} not accepted`,
     );
@@ -199,12 +202,16 @@ export default class EventDetail {
     ];
   }
 
-  protected exportCsv(): void {
+  /** The server builds the CSV (and audits the export); the browser saves it. */
+  protected async exportCsv(): Promise<void> {
     const e = this.event()!;
-    this.exporter.downloadCsv(
-      `${e.title.replace(/\W+/g, '-').toLowerCase()}-participants.csv`,
-      this.exportRows(),
-    );
+    await this.run(async () => {
+      const { blob, filename } = await this.domain.exportParticipants(e.id);
+      this.exporter.saveBlob(
+        filename ?? `${e.title.replace(/\W+/g, '-').toLowerCase()}-participants.csv`,
+        blob,
+      );
+    });
   }
 
   protected exportPdf(): void {

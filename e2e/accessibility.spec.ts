@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-import { USERS, expectAccessible, signIn } from './support';
+import { IDS, expect, test, USERS, expectAccessible, signIn } from './support';
 
 /** Every page, for the role that can see it, checked with axe at WCAG 2.2 A/AA/AAA in both themes. */
 const PAGES: { user: string; paths: string[] }[] = [
@@ -10,17 +9,17 @@ const PAGES: { user: string; paths: string[] }[] = [
       '/dashboard',
       '/events',
       '/events/new',
-      '/events/ev-fiesta',
-      '/events/ev-fiesta/invitations',
-      '/events/ev-fiesta/nominations',
-      '/events/ev-fiesta/edit',
+      `/events/${IDS.fiesta}`,
+      `/events/${IDS.fiesta}/invitations`,
+      `/events/${IDS.fiesta}/nominations`,
+      `/events/${IDS.fiesta}/edit`,
       '/invitations',
       '/people',
       // Another school's approvals: must show a titled "not available" page, no data.
-      '/approvals/inv-fiesta-lake',
+      `/approvals/${IDS.invFiestaLake}`,
     ],
   },
-  { user: USERS.guestTeacher, paths: ['/approvals', '/approvals/inv-fiesta-lake'] },
+  { user: USERS.guestTeacher, paths: ['/approvals', `/approvals/${IDS.invFiestaLake}`] },
   {
     user: USERS.student,
     paths: ['/dashboard', '/explore', '/my-applications', '/notifications', '/does-not-exist'],
@@ -50,7 +49,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('open dialogs', async ({ page }) => {
       await signIn(page, USERS.hostAdmin);
-      await page.goto('/events/ev-fiesta');
+      await page.goto(`/events/${IDS.fiesta}`);
       await page.getByRole('button', { name: 'Invite schools' }).first().click();
       await expect(page.getByRole('dialog', { name: 'Invite schools' })).toBeVisible();
       await expectAccessible(page, `invite dialog (${scheme})`);
@@ -68,6 +67,8 @@ test.describe('keyboard and focus', () => {
     await signIn(page, USERS.hostAdmin);
     await expect(page.locator('[data-page-heading]')).toBeVisible();
     await page.goto('/dashboard');
+    // A full load restores the session from the API before the app renders.
+    await expect(page.locator('[data-page-heading]')).toBeVisible();
     await page.keyboard.press('Tab');
     const skip = page.getByRole('link', { name: 'Skip to main content' });
     await expect(skip).toBeFocused();
@@ -78,7 +79,7 @@ test.describe('keyboard and focus', () => {
   test('focus moves to the page heading after navigation', async ({ page }) => {
     await signIn(page, USERS.hostAdmin);
     await expect(page.locator('[data-page-heading]')).toBeVisible();
-    await page.goto('/events/ev-fiesta');
+    await page.goto(`/events/${IDS.fiesta}`);
     await page.getByRole('link', { name: 'Hosted events' }).first().click();
     await expect(page.getByRole('heading', { level: 1, name: 'Hosted events' })).toBeFocused();
   });

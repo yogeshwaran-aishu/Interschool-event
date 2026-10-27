@@ -1,5 +1,26 @@
 import AxeBuilder from '@axe-core/playwright';
-import { Page, expect } from '@playwright/test';
+import { Page, expect, test as base } from '@playwright/test';
+
+export { IDS } from '../server/src/db/seed-ids';
+export { expect };
+
+/** URL of the e2e API (server/scripts/e2e-api.ts), started by playwright.config.ts. */
+export const API_URL = `http://localhost:${process.env['E2E_API_PORT'] ?? 3100}`;
+
+/**
+ * Every test starts from the seeded demo data: the database is shared, so the reset runs
+ * before each test and the suite runs one test at a time.
+ */
+export const test = base.extend<{ resetData: void }>({
+  resetData: [
+    async ({ request }, use) => {
+      const res = await request.post(`${API_URL}/api/v1/dev/reset`);
+      expect(res.status(), 'demo data reset').toBe(204);
+      await use();
+    },
+    { auto: true },
+  ],
+});
 
 export const PASSWORD = 'demo1234';
 
@@ -27,7 +48,7 @@ export async function signOut(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/login/);
 }
 
-/** Switches user within the same browser context (shared demo data in localStorage). */
+/** Signs out and in as someone else in the same browser. */
 export async function switchUser(page: Page, email: string): Promise<void> {
   await signOut(page);
   await signIn(page, email);

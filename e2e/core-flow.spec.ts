@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-import { USERS, signIn, switchUser } from './support';
+import { IDS, expect, test, USERS, signIn, switchUser } from './support';
 
 /**
  * The PRD core flow, end to end: host creates and publishes an event, invites a school;
@@ -91,7 +90,7 @@ test('host → guest school → student → approval → host confirmation', asy
 
 test('host cancels an event with a reason (EV-5)', async ({ page }) => {
   await signIn(page, USERS.hostAdmin);
-  await page.goto('/events/ev-fiesta');
+  await page.goto(`/events/${IDS.fiesta}`);
   await page.getByRole('button', { name: 'Cancel event' }).click();
   const dialog = page.getByRole('dialog', { name: 'Cancel this event?' });
   await dialog.getByRole('button', { name: 'Cancel event' }).click();

@@ -1,52 +1,43 @@
-import { DOCUMENT } from '@angular/common';
-import { Service, effect, inject, signal } from '@angular/core';
-import { Clock } from './clock';
+import { Service, inject, signal } from '@angular/core';
+import { Api } from './api';
 import { Db } from './models';
-import { createSeed } from './seed';
 
-const STORAGE_KEY = 'isc-db-v1';
+export const EMPTY_DB: Db = {
+  schools: [],
+  users: [],
+  students: [],
+  events: [],
+  categories: [],
+  invitations: [],
+  registrations: [],
+  nominations: [],
+  notifications: [],
+  audit: [],
+};
 
 /**
- * In-browser stand-in for the PostgreSQL database described in the PRD. Holds all
- * tables in one signal and persists them to localStorage so the demo survives reloads.
- * Only `DomainService` writes to it.
+ * Client-side cache of what the API lets the signed-in person see (GET /api/v1/state).
+ * Pages read it through signals; after every write `DomainService` reloads it, so the
+ * PostgreSQL database stays the single source of truth.
  */
 @Service()
 export class Store {
-  private readonly document = inject(DOCUMENT);
-  private readonly clock = inject(Clock);
-  readonly db = signal<Db>(this.load());
+  private readonly api = inject(Api);
+  readonly db = signal<Db>(EMPTY_DB);
+  readonly loaded = signal(false);
 
-  constructor() {
-    effect(() => {
-      const db = this.db();
-      try {
-        this.document.defaultView?.localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-      } catch {
-        // Storage unavailable: data lives for this session only.
-      }
-    });
+  async refresh(): Promise<void> {
+    this.db.set(await this.api.get<Db>('/state'));
+    this.loaded.set(true);
   }
 
-  update(mutator: (draft: Db) => void): void {
-    this.db.update((db) => {
-      const draft = structuredClone(db);
-      mutator(draft);
-      return draft;
-    });
+  clear(): void {
+    this.db.set(EMPTY_DB);
+    this.loaded.set(false);
   }
 
-  reset(): void {
-    this.db.set(createSeed(this.clock.now()));
-  }
-
-  private load(): Db {
-    try {
-      const raw = this.document.defaultView?.localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as Db;
-    } catch {
-      // Fall through to fresh seed data.
-    }
-    return createSeed(this.clock.now());
+  /** Development only: the API re-seeds the demo data (POST /dev/reset). */
+  async resetDemo(): Promise<void> {
+    await this.api.post('/dev/reset');
   }
 }

@@ -1,0 +1,8 @@
+Subject: {{count}} new item(s) to review on InterSchool Connect
+Hello {{name}},
+
+Since yesterday:
+
+{{items}}
+
+Review them at {{appUrl}}/approvals

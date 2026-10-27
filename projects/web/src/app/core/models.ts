@@ -36,8 +36,6 @@ export interface User {
   email: string;
   phone?: string;
   status: UserStatus;
-  /** Demo only: real passwords are hashed server-side (argon2/bcrypt). */
-  password: string;
   mustChangePassword: boolean;
   /** Teachers only: may create events for their school. */
   canHostEvents?: boolean;
@@ -120,6 +118,7 @@ export interface AppNotification {
 export interface AuditEntry {
   id: string;
   actorId: string;
+  actorName: string;
   schoolId: string | null;
   action: string;
   entity: string;
@@ -129,6 +128,29 @@ export interface AuditEntry {
   at: string;
 }
 
+/** A submitted nomination as the host sees it: name, class, school and category only (PRD privacy rule). */
+export interface Nomination {
+  registrationId: string;
+  eventId: string;
+  invitationId: string;
+  studentName: string;
+  className: number;
+  schoolName: string;
+  categoryName: string;
+  hostStatus: Exclude<HostDecision, 'not_submitted'>;
+}
+
+/** Platform-wide counts for the App Admin, who never receives student records. */
+export interface PlatformStats {
+  activeSchools: number;
+  suspendedSchools: number;
+  liveEvents: number;
+  students: number;
+  registrations: number;
+  perSchool: Record<string, { users: number; events: number }>;
+}
+
+/** What GET /api/v1/state returns: everything the signed-in person may see, scoped by the server. */
 export interface Db {
   schools: School[];
   users: User[];
@@ -137,6 +159,8 @@ export interface Db {
   categories: Category[];
   invitations: Invitation[];
   registrations: Registration[];
+  nominations: Nomination[];
   notifications: AppNotification[];
   audit: AuditEntry[];
+  platform?: PlatformStats;
 }

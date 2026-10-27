@@ -149,12 +149,15 @@ export default class EventForm {
       };
       const existing = this.existing();
       if (existing) {
-        const ok = this.run(() => this.domain.updateEvent(existing.id, draft), 'Event updated');
+        const ok = await this.run(
+          () => this.domain.updateEvent(existing.id, draft),
+          'Event updated',
+        );
         if (ok) await this.router.navigate(['/events', existing.id]);
       } else {
         let createdId = '';
-        const ok = this.run(
-          () => (createdId = this.domain.createEvent(draft, publish).id),
+        const ok = await this.run(
+          async () => (createdId = (await this.domain.createEvent(draft, publish)).id),
           publish ? 'Event published' : 'Draft saved',
           publish ? 'Next: invite schools from the event page.' : undefined,
         );

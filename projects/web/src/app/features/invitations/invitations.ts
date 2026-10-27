@@ -79,10 +79,10 @@ export default class Invitations {
     this.responding.set({ invitation, accept, title });
   }
 
-  protected confirm(): void {
+  protected async confirm(): Promise<void> {
     const r = this.responding();
     if (!r) return;
-    const ok = this.run(
+    const ok = await this.run(
       () => this.domain.respondToInvitation(r.invitation.id, r.accept, this.note()),
       r.accept ? `Accepted: ${r.title}` : `Declined: ${r.title}`,
       r.accept

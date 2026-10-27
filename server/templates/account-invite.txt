@@ -1,0 +1,10 @@
+Subject: Your InterSchool Connect account
+Hello {{name}},
+
+{{body}}
+
+Sign in at {{appUrl}}/login with
+  Email: {{loginId}}
+  Temporary password: {{tempPassword}}
+
+You will be asked to choose your own password the first time you sign in.

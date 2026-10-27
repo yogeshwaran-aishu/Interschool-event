@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-import { PASSWORD, USERS, signIn } from './support';
+import { expect, test, PASSWORD, USERS, signIn } from './support';
 
 test.describe('sign in', () => {
   test('redirects signed-out visitors to sign in and back', async ({ page }) => {
